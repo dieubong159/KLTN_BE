@@ -30,17 +30,17 @@ const app = express();
 
 app.use(bodyParser.json());
 app.use(authRoutes);
-app.use(adminRoutes);
-app.use(agentRoutes);
-app.use(bookingRoutes);
-app.use(couponRoutes);
+// app.use(adminRoutes);
+// app.use(agentRoutes);
+// app.use(bookingRoutes);
+// app.use(couponRoutes);
 app.use(locationRoutes);
-app.use(routeRoutes);
-app.use(scheduleRoutes);
-app.use(seatmapRoutes);
-app.use(trackRoutes);
-app.use(userRoutes);
-app.use(vehicleRoutes);
+// app.use(routeRoutes);
+// app.use(scheduleRoutes);
+// app.use(seatmapRoutes);
+// app.use(trackRoutes);
+// app.use(userRoutes);
+// app.use(vehicleRoutes);
 
 const mongoUri =
   "mongodb+srv://dieubong159:dieu16110291@reactnative-obpke.mongodb.net/test?retryWrites=true&w=majority";
@@ -48,19 +48,19 @@ const mongoUri =
 mongoose.connect(mongoUri, {
   useNewUrlParser: true,
   useCreateIndex: true,
-  useUnifiedTopology: true
+  useUnifiedTopology: true,
 });
 
 mongoose.connection.on("connected", () => {
   console.log("Connected to mongo instance!");
 });
 
-mongoose.connection.on("error", err => {
+mongoose.connection.on("error", (err) => {
   console.error("Error connecting to mongo!", err);
 });
 
-app.get("/", (req, res) => {
-  res.send("Hi there");
+app.get("/", requireAuth, (req, res) => {
+  res.send(`Your email is ${req.user.email}`);
 });
 
 app.listen(3000, () => {

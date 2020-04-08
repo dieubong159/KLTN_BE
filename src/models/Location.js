@@ -1,16 +1,23 @@
 const mongoose = require("mongoose");
 
 const locationSchema = mongoose.Schema({
-  timestamp: Number,
+  address: {
+    type: String,
+    required: true,
+    unique: true,
+  },
+  timestamp: {
+    type: Number,
+    default: +new Date(),
+  },
   coords: {
     latitude: Number,
     longtitude: Number,
     altitude: Number,
     accuracy: Number,
     heading: Number,
-    speed: Number
+    speed: Number,
   },
-  address: String
 });
 
 mongoose.model("Location", locationSchema);
