@@ -17,24 +17,24 @@ const managementSchema = Schema({
 
 exports.adminSchema = adminSchema;
 
-const Admin = mongoose.model("Admin", adminSchema);
+mongoose.model("Admin", adminSchema);
 
-exports.createAdmin = (adminData,next) => {
-  const admin = new Admin(adminData);
+// exports.createAdmin = (adminData,next) => {
+//   const admin = new Admin(adminData);
 
-  if(!admin.isModified("password")) return next();
+//   if(!admin.isModified("password")) return next();
 
-  bcrypt.genSalt(10,function(err, salt) {
-    if (err) return next(err);
+//   bcrypt.genSalt(10,function(err, salt) {
+//     if (err) return next(err);
     
-    bcrypt.hash(admin.password,salt,(err,hash)=>{
-      if (err) return next(err);
-      admin.password = hash;
-      next();
-    });
-  });
-  return admin.save();
-};
+//     bcrypt.hash(admin.password,salt,(err,hash)=>{
+//       if (err) return next(err);
+//       admin.password = hash;
+//       next();
+//     });
+//   });
+//   return admin.save();
+// };
 
 exports.findById = id => {
   return Admin.findById(id).then(result => {

@@ -1,22 +1,33 @@
 var express = require("express");
+const mongoose = require("mongoose");
 var router = express.Router();
 const AdminModel = require("../models/Admin");
 
+const Admin = mongoose.model("Admin");
 
-router.post("/createadmin", async (req, res,next) => {
-    AdminModel.createAdmin(req.body,next).then(result => {
-        res.status(201).send({
-            id: result._id,
-            message: 'User added successfully!'
+router.post("/createadmin", async (req, res, next) => {
+    const admin = new Admin(req.body);
+    if (!admin.isModified("password")) return next();
+    bcrypt.genSalt(10, function (err, salt) {
+        if (err) return next(err);
+        bcrypt.hash(admin.password, salt, (err, hash) => {
+            if (err) return next(err);
+            admin.password = hash;
+            admin.save().then(
+                () => {
+                    res.status(201).json({
+                        message: 'Admin added successfully!'
+                    });
+                }
+            ).catch(
+                (error) => {
+                    res.status(500).json({
+                        error: error
+                    });
+                }
+            );;
         });
-    })
-    .catch(
-        (error) => {
-          res.status(500).json({
-            error: error
-          });
-        }
-    );
+    });
 });
 
 router.get("/admin/:admin_id", async (req, res) => {
