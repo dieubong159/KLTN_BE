@@ -28,19 +28,19 @@ const vehicleRoutes = require("./routes/vehicleRoutes");
 
 const app = express();
 
-app.use(bodyParser.json());
-app.use(authRoutes);
+// app.use(bodyParser.json());
+// app.use(authRoutes);
 app.use(adminRoutes);
-app.use(agentRoutes);
-app.use(bookingRoutes);
-app.use(couponRoutes);
-app.use(locationRoutes);
-app.use(routeRoutes);
-app.use(scheduleRoutes);
-app.use(seatmapRoutes);
-app.use(trackRoutes);
-app.use(userRoutes);
-app.use(vehicleRoutes);
+// app.use(agentRoutes);
+// app.use(bookingRoutes);
+// app.use(couponRoutes);
+// app.use(locationRoutes);
+// app.use(routeRoutes);
+// app.use(scheduleRoutes);
+// app.use(seatmapRoutes);
+// app.use(trackRoutes);
+// app.use(userRoutes);
+// app.use(vehicleRoutes);
 
 const mongoUri =
   "mongodb+srv://dieubong159:dieu16110291@reactnative-obpke.mongodb.net/test?retryWrites=true&w=majority";

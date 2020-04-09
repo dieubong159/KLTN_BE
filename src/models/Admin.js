@@ -6,7 +6,7 @@ const adminSchema = Schema({
   username: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   name: { type: String },
-  status: { type: Boolean }
+  status: { type: Number }
 });
 
 const managementSchema = Schema({
@@ -19,15 +19,19 @@ exports.adminSchema = adminSchema;
 
 const Admin = mongoose.model("Admin", adminSchema);
 
-exports.createAdmin = adminData => {
+exports.createAdmin = (adminData,next) => {
   const admin = new Admin(adminData);
-  //hash the password only if the password has been changed or user is new
-  if (!admin.isModified("password")) return next;
-  //generate the hash
-  bcrypt.hash(admin.password, null, null, function(err, hash) {
+
+  if(!admin.isModified("password")) return next();
+
+  bcrypt.genSalt(10,function(err, salt) {
     if (err) return next(err);
-    //change the password to the hash version
-    admin.password = hash;
+    
+    bcrypt.hash(admin.password,salt,(err,hash)=>{
+      if (err) return next(err);
+      admin.password = hash;
+      next();
+    });
   });
   return admin.save();
 };
@@ -38,6 +42,18 @@ exports.findById = id => {
     delete result._id;
     delete result.__v;
     return result;
+  });
+};
+
+exports.listAdmin = (perPage, page) => {
+  return new Promise((resolve, reject) => {
+    Admin.find()
+      .limit(perPage)
+      .skip(perPage * page)
+      .exec(function(err, users) {
+        if (err) reject(err);
+        else resolve(users);
+      });
   });
 };
 
