@@ -1,6 +1,8 @@
 var express = require("express");
 const mongoose = require("mongoose");
 var router = express.Router();
+var bcrypt = require("bcrypt");
+
 const AdminModel = require("../models/Admin");
 
 const Admin = mongoose.model("Admin");
@@ -30,14 +32,27 @@ router.post("/createadmin", async (req, res, next) => {
     });
 });
 
+router.get("/admin/test", async (req, res) => {
+    var query = { username: 'root' };
+    Admin.find(query).then(result => {
+        //result = result.toJSON();
+        console.log(result);
+        delete result.__v;
+        return res.status(200).send(result);
+    });
+});
+
+
 router.get("/admin/:admin_id", async (req, res) => {
-    AdminModel.findById(req.params.admin_id).then(result => {
+    Admin.findById(req.params.admin_id).then(result => {
+        result = result.toJSON();
+        delete result.__v;
         res.status(200).send(result);
     });
 });
 
 router.get("/admin", async (req, res) => {
-    let limit =
+    let perPage =
         req.query.limit && req.query.limit <= 100 ? parseInt(req.query.limit) : 10;
     let page = 0;
     if (req.query) {
@@ -46,9 +61,16 @@ router.get("/admin", async (req, res) => {
             page = Number.isInteger(req.body.page) ? req.body.page : 0;
         }
     }
-    AdminModel.listAdmin(limit, page).then(result => {
-        res.status(200).send(result);
+    var listAdmin = new Promise((resolve, reject) => {
+        Admin.find()
+            .limit(perPage)
+            .skip(perPage * page)
+            .exec(function (err, users) {
+                if (err) reject(err);
+                else resolve(users);
+            });
     });
+    res.status(200).send(listAdmin);
 });
 
 module.exports = router;
