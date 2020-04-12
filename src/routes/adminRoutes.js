@@ -27,7 +27,7 @@ router.post("/createadmin", async (req, res, next) => {
                         error: error
                     });
                 }
-            );;
+            );
         });
     });
 });
@@ -42,7 +42,6 @@ router.get("/admin/test", async (req, res) => {
     });
 });
 
-
 router.get("/admin/:admin_id", async (req, res) => {
     Admin.findById(req.params.admin_id).then(result => {
         result = result.toJSON();
@@ -53,7 +52,7 @@ router.get("/admin/:admin_id", async (req, res) => {
 
 router.get("/admin", async (req, res) => {
     let perPage =
-        req.query.limit && req.query.limit <= 100 ? parseInt(req.query.limit) : 10;
+        req.query.limit && req.query.limit <= 100 ? parseInt(req.query.limit) : 20;
     let page = 0;
     if (req.query) {
         if (req.body.page) {
@@ -61,16 +60,42 @@ router.get("/admin", async (req, res) => {
             page = Number.isInteger(req.body.page) ? req.body.page : 0;
         }
     }
-    var listAdmin = new Promise((resolve, reject) => {
-        Admin.find()
-            .limit(perPage)
-            .skip(perPage * page)
-            .exec(function (err, users) {
-                if (err) reject(err);
-                else resolve(users);
-            });
-    });
+    var listAdmin = await Admin.find()
+        .limit(perPage)
+        .skip(perPage * page)
+
     res.status(200).send(listAdmin);
+});
+
+router.patch("/admin/:admin_id", async (req, res, next) => {
+    var userData = req.body;
+    if (userData.password) {
+        bcrypt.genSalt(10, function (err, salt) {
+            if (err) return next(err);
+            bcrypt.hash(userData.password, salt, (err, hash) => {
+                if (err) return next(err);
+                userData.password = hash;
+            });
+        });
+    }
+    Admin.findById(req.params.admin_id, function (err, user) {
+        for (let i in userData) {
+            user[i] = userData[i];
+        }
+        user.save().then(
+            () => {
+                res.status(200).json({
+                    message: 'Admin changed successfully!'
+                });
+            }
+        ).catch(
+            (error) => {
+                res.status(500).json({
+                    error: error
+                });
+            }
+        );;
+    });
 });
 
 module.exports = router;
