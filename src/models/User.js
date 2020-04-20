@@ -1,45 +1,58 @@
 const mongoose = require("mongoose");
+const bcrypt = require("bcrypt");
+
+const randomStr = (len, arr) => {
+  var ans = "";
+  for (var i = len; i > 0; i--) {
+    ans += arr[Math.floor(Math.random() * arr.length)];
+  }
+  return ans;
+};
 
 const userSchema = mongoose.Schema({
   phone: {
     type: Number,
     required: true,
-    unique: true
+    unique: true,
+    default: randomStr(10, "0123456789"),
   },
   password: {
     type: String,
-    required: true
+    required: true,
+    default: randomStr(18, "0123456789abcdefghijklmnopqrstuvwxy"),
   },
   email: {
-    type: String
+    type: String,
   },
   fullName: {
-    type: String
+    type: String,
   },
   gender: {
-    type: Boolean
+    type: Boolean,
   },
   address: {
-    type: String
+    type: String,
   },
   birthday: {
-    type: Date
+    type: Date,
   },
   avatar: {
-    type: String
+    type: String,
   },
   createdTime: {
-    type: Number
+    type: Number,
+    default: Date.now(),
   },
   timestamp: {
-    type: Number
+    type: Number,
+    default: Date.now().valueOf(),
   },
   userAgent: {
-    type: String
-  }
+    type: String,
+  },
 });
 
-userSchema.pre("save", function(next) {
+userSchema.pre("save", function (next) {
   const user = this;
   if (!user.isModified("password")) {
     return next();
@@ -60,7 +73,7 @@ userSchema.pre("save", function(next) {
   });
 });
 
-userSchema.methods.comparePassword = function(candidatePassword) {
+userSchema.methods.comparePassword = function (candidatePassword) {
   const user = this;
 
   return new Promise((resolve, reject) => {
