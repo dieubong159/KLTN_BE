@@ -7,7 +7,7 @@ const AdminModel = require("../models/Admin");
 
 const Admin = mongoose.model("Admin");
 
-router.post("/createadmin", async (req, res, next) => {
+router.post("/admin", async (req, res, next) => {
     const admin = new Admin(req.body);
     if (!admin.isModified("password")) return next();
     bcrypt.genSalt(10, function (err, salt) {
@@ -17,7 +17,7 @@ router.post("/createadmin", async (req, res, next) => {
             admin.password = hash;
             admin.save().then(
                 () => {
-                    res.status(201).json({
+                    res.status(200).json({
                         message: 'Admin added successfully!'
                     });
                 }
@@ -32,11 +32,10 @@ router.post("/createadmin", async (req, res, next) => {
     });
 });
 
-router.get("/admin/test", async (req, res) => {
-    var query = { username: 'root' };
+router.get("/admin/CheckUserName", async (req, res) => {
+    var query = { username: req.body.UserName };
     Admin.find(query).then(result => {
         //result = result.toJSON();
-        console.log(result);
         delete result.__v;
         return res.status(200).send(result);
     });
@@ -52,7 +51,7 @@ router.get("/admin/:admin_id", async (req, res) => {
 
 router.get("/admin", async (req, res) => {
     let perPage =
-        req.query.limit && req.query.limit <= 100 ? parseInt(req.query.limit) : 20;
+        req.query.limit && req.query.limit <= 100 ? parseInt(req.query.limit) : 200;
     let page = 0;
     if (req.query) {
         if (req.body.page) {
