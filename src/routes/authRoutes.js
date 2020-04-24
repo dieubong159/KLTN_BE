@@ -7,16 +7,49 @@ const User = mongoose.model("User");
 const router = express.Router();
 
 router.post("/signup", async (req, res) => {
-  const { phonenumber, password } = req.body;
+  const { phonenumber, email, password } = req.body;
 
   try {
-    const user = new User({ phonenumber, password });
+    const user = new User({
+      phone: phonenumber,
+      password: password,
+      email: email,
+    });
     await user.save();
 
     const token = jwt.sign({ userId: user._id }, "KLTN-Booking");
     res.send({ token });
   } catch (err) {
+    console.log(err.message);
     res.status(422).send(err.message);
+  }
+});
+
+router.post("/signinWithCredential", async (req, res) => {
+  const { email, name, id, photoUrl, address } = req.body.userInfo;
+  // console.log(req.body.userInfo);
+
+  const user = await User.findOne({ userAgent: id });
+
+  if (!user || user === null) {
+    try {
+      const newUser = new User({
+        email: email,
+        fullname: name,
+        avatar: photoUrl,
+        userAgent: id,
+      });
+      await newUser.save();
+
+      const token = jwt.sign({ userId: newUser._id }, "KLTN-Booking");
+      console.log(token);
+      res.send({ token });
+    } catch (error) {
+      res.status(422).send(error.message);
+    }
+  } else {
+    const token = jwt.sign({ userId: user._id }, "KLTN-Booking");
+    res.send({ token });
   }
 });
 
@@ -40,6 +73,34 @@ router.post("/signin", async (req, res) => {
     res.send({ token });
   } catch (err) {
     return res.status(422).send({ error: "Invalid password or phonenumber" });
+  }
+});
+
+router.get("/user/:userId", async (req, res) => {
+  const userId = req.params.userId;
+  console.log(userId);
+  try {
+    const user = await User.findOne({ _id: mongoose.Types.ObjectId(userId._id) });
+    if (user) {
+      res.send({ user });
+    } else {
+      return res.status(422).send({ error: "Invalid user ID" });
+    }
+  } catch (err) {
+    console.log(err.message);
+    return res.status(422).send({ error: "Invalid user ID" });
+  }
+});
+
+router.post("/verifyToken", (req, res) => {
+  const token = req.body.token;
+  try {
+    const decoded = jwt.verify(token, "KLTN-Booking");
+    res.send({ decoded });
+    console.log(decoded);
+  } catch (error) {
+    console.log(error);
+    return res.status(422).send({ error: "Invalid Token" });
   }
 });
 
