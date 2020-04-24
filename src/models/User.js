@@ -11,18 +11,17 @@ const randomStr = (len, arr) => {
 
 const userSchema = mongoose.Schema({
   phone: {
-    type: Number,
+    type: String,
     required: true,
     unique: true,
-    default: randomStr(10, "0123456789"),
   },
   password: {
     type: String,
     required: true,
-    default: randomStr(18, "0123456789abcdefghijklmnopqrstuvwxy"),
   },
   email: {
     type: String,
+    unique: false,
   },
   fullName: {
     type: String,

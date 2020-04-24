@@ -10,14 +10,17 @@ router.post("/signup", async (req, res) => {
   const { phonenumber, email, password } = req.body;
 
   try {
-    const user = new User({ phonenumber, password, email });
+    const user = new User({
+      phone: phonenumber,
+      password: password,
+      email: email,
+    });
     await user.save();
 
     const token = jwt.sign({ userId: user._id }, "KLTN-Booking");
     res.send({ token });
-    console.log(token);
   } catch (err) {
-    console.log(err);
+    console.log(err.message);
     res.status(422).send(err.message);
   }
 });
@@ -70,6 +73,34 @@ router.post("/signin", async (req, res) => {
     res.send({ token });
   } catch (err) {
     return res.status(422).send({ error: "Invalid password or phonenumber" });
+  }
+});
+
+router.get("/user/:userId", async (req, res) => {
+  const userId = req.params.userId;
+  console.log(userId);
+  try {
+    const user = await User.findOne({ _id: mongoose.Types.ObjectId(userId._id) });
+    if (user) {
+      res.send({ user });
+    } else {
+      return res.status(422).send({ error: "Invalid user ID" });
+    }
+  } catch (err) {
+    console.log(err.message);
+    return res.status(422).send({ error: "Invalid user ID" });
+  }
+});
+
+router.post("/verifyToken", (req, res) => {
+  const token = req.body.token;
+  try {
+    const decoded = jwt.verify(token, "KLTN-Booking");
+    res.send({ decoded });
+    console.log(decoded);
+  } catch (error) {
+    console.log(error);
+    return res.status(422).send({ error: "Invalid Token" });
   }
 });
 
