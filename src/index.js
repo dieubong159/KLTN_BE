@@ -43,7 +43,7 @@ app.use(locationRoutes);
 // app.use(seatmapRoutes);
 // app.use(trackRoutes);
 // app.use(userRoutes);
-// app.use(vehicleRoutes);
+app.use(vehicleRoutes);
 
 const mongoUri =
   "mongodb+srv://dieubong159:dieu16110291@reactnative-obpke.mongodb.net/test?retryWrites=true&w=majority";

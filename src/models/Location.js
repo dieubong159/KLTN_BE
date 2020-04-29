@@ -7,16 +7,16 @@ const locationSchema = mongoose.Schema({
     unique: true,
   },
   timestamp: {
-    type: Number,
-    default: +new Date(),
+    type: Date,
+    default: Date.now,
   },
   coords: {
-    latitude: Number,
-    longtitude: Number,
-    altitude: Number,
-    accuracy: Number,
-    heading: Number,
-    speed: Number,
+    latitude: String,
+    longtitude: String,
+    altitude: String,
+    accuracy: String,
+    heading: String,
+    speed: String,
   },
 });
 

@@ -95,7 +95,7 @@ router.patch("/admin/:admin_id", async (req, res, next) => {
                     error: error
                 });
             }
-        );;
+        );
     });
 });
 
