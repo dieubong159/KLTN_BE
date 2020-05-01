@@ -34,7 +34,7 @@ app.use(bodyParser.raw());
 
 app.use(authRoutes);
 app.use(adminRoutes);
-// app.use(agentRoutes);
+app.use(agentRoutes);
 // app.use(bookingRoutes);
 // app.use(couponRoutes);
 app.use(locationRoutes);

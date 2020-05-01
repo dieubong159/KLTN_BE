@@ -4,6 +4,9 @@ const vehicleSchema = mongoose.Schema({
   type: {
     type: String
   },
+  name: { 
+    type: String 
+  },
   startLocation: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Location"

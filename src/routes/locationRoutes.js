@@ -29,7 +29,7 @@ router.post("/location", async (req, res) => {
   try {
     const location = new Location({ address, timestamp, coords });
     await location.save();
-    res.send(location);
+    res.status(200).send(location);
   } catch (error) {
     res.status(422).send({ error: error.message });
   }

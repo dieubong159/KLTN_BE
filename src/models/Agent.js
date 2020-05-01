@@ -1,9 +1,10 @@
 const mongoose = require("mongoose");
 
 const agentSchema = mongoose.Schema({
-  cancelfee: {
-    type: Number
-  }
+  username: { type: String, required: true, unique: true },
+  password: { type: String, required: true },
+  name: { type: String },
+  status: { type: Number }
 });
 
 const agentDetailSchema = mongoose.Schema({
@@ -12,6 +13,9 @@ const agentDetailSchema = mongoose.Schema({
     ref: "Agent"
   },
   phonenumber: {
+    type: Number
+  },
+  cancelfee: {
     type: Number
   },
   location: {
