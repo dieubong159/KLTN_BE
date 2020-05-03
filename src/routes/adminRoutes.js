@@ -7,7 +7,7 @@ const AdminModel = require("../models/Admin");
 
 const Admin = mongoose.model("Admin");
 
-router.post("/addadmin", async (req, res, next) => {
+router.post("/admin", async (req, res, next) => {
   const admin = new Admin(req.body);
   if (!admin.isModified("password")) {
     return next();
