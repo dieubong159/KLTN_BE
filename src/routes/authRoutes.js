@@ -7,13 +7,16 @@ const User = mongoose.model("User");
 const router = express.Router();
 
 router.post("/signup", async (req, res) => {
-  const { phonenumber, email, password } = req.body;
-
+  const signupInformation = req.body;
+  console.log(signupInformation);
   try {
     const user = new User({
-      phone: phonenumber,
-      password: password,
-      email: email,
+      phone: signupInformation.phonenumber,
+      password: signupInformation.password,
+      email: signupInformation.email,
+      fullName: signupInformation.name,
+      userAgent: signupInformation.id,
+      avatar: signupInformation.photoUrl,
     });
     await user.save();
 
@@ -25,28 +28,13 @@ router.post("/signup", async (req, res) => {
   }
 });
 
-router.post("/signinWithCredential", async (req, res) => {
-  const { email, name, id, photoUrl, address } = req.body.userInfo;
-  // console.log(req.body.userInfo);
-
-  const user = await User.findOne({ userAgent: id });
-
+router.get("/oauth/:user_agent", async (req, res) => {
+  const oauthId = req.params.user_agent;
+  console.log(oauthId);
+  const user = await User.findOne({ userAgent: oauthId });
+  console.log(user);
   if (!user || user === null) {
-    try {
-      const newUser = new User({
-        email: email,
-        fullname: name,
-        avatar: photoUrl,
-        userAgent: id,
-      });
-      await newUser.save();
-
-      const token = jwt.sign({ userId: newUser._id }, "KLTN-Booking");
-      console.log(token);
-      res.send({ token });
-    } catch (error) {
-      res.status(422).send(error.message);
-    }
+    res.status(422).send({ message: "This user is unregistered" });
   } else {
     const token = jwt.sign({ userId: user._id }, "KLTN-Booking");
     res.send({ token });
@@ -78,9 +66,10 @@ router.post("/signin", async (req, res) => {
 
 router.get("/user/:userId", async (req, res) => {
   const userId = req.params.userId;
-  console.log(userId);
   try {
-    const user = await User.findOne({ _id: mongoose.Types.ObjectId(userId._id) });
+    const user = await User.findOne({
+      _id: userId,
+    });
     if (user) {
       res.send({ user });
     } else {
@@ -96,8 +85,7 @@ router.post("/verifyToken", (req, res) => {
   const token = req.body.token;
   try {
     const decoded = jwt.verify(token, "KLTN-Booking");
-    res.send({ decoded });
-    console.log(decoded);
+    res.send(decoded);
   } catch (error) {
     console.log(error);
     return res.status(422).send({ error: "Invalid Token" });
