@@ -3,28 +3,32 @@ const mongoose = require("mongoose");
 const routeSchema = mongoose.Schema({
   vehicle: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "Vehicle"
+    ref: "Vehicle",
   },
   startTime: {
-    type: String
+    type: String,
   },
   endTime: {
-    type: String
+    type: String,
   },
   startLocation: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "Location"
+    ref: "Location",
   },
   endLocation: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "Location"
+    ref: "Location",
   },
   status: {
-    type: Number
+    type: Number,
   },
   price: {
-    type: Number
-  }
+    type: Number,
+  },
+  departureDate: {
+    type: Date,
+    default: Date(),
+  },
 });
 
 mongoose.model("Route", routeSchema);

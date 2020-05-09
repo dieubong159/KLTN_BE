@@ -15,8 +15,8 @@ router.post("/signup", async (req, res) => {
       password: signupInformation.password,
       email: signupInformation.email,
       fullName: signupInformation.name,
-      userAgent: signupInformation.id,
-      avatar: signupInformation.photoUrl,
+      userAgent: signupInformation.user_agent,
+      avatar: signupInformation.photo_url,
     });
     await user.save();
 
@@ -30,14 +30,15 @@ router.post("/signup", async (req, res) => {
 
 router.get("/oauth/:user_agent", async (req, res) => {
   const oauthId = req.params.user_agent;
-  console.log(oauthId);
+  // console.log(oauthId);
   const user = await User.findOne({ userAgent: oauthId });
-  console.log(user);
+  // console.log(user);
   if (!user || user === null) {
     res.status(422).send({ message: "This user is unregistered" });
   } else {
     const token = jwt.sign({ userId: user._id }, "KLTN-Booking");
     res.send({ token });
+    console.log(token);
   }
 });
 

@@ -38,7 +38,7 @@ app.use(agentRoutes);
 // app.use(bookingRoutes);
 // app.use(couponRoutes);
 app.use(locationRoutes);
-// app.use(routeRoutes);
+app.use(routeRoutes);
 // app.use(scheduleRoutes);
 // app.use(seatmapRoutes);
 // app.use(trackRoutes);
