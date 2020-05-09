@@ -21,7 +21,9 @@ router.get("/vehicle/:vehicle_id", async (req, res) => {
 });
 router.post("/vehicle", async (req, res) => {
   const vehicle = new Vehicle(req.body);
-  var validstartLocation = mongoose.Types.ObjectId.isValid(vehicle.startLocation);
+  var validstartLocation = mongoose.Types.ObjectId.isValid(
+    vehicle.startLocation
+  );
   var validendLocation = mongoose.Types.ObjectId.isValid(vehicle.endLocation);
   var validagent = mongoose.Types.ObjectId.isValid(vehicle.agent);
 
@@ -36,7 +38,7 @@ router.post("/vehicle", async (req, res) => {
       });
     }
     if (!agentExist) {
-    return res.status(500).json({
+      return res.status(500).json({
         error: "Agent not exist",
       });
     }
@@ -66,7 +68,7 @@ router.patch("/vehicle/:vehicle_id", async (req, res) => {
       if (i === "agent") {
         var valid = mongoose.Types.ObjectId.isValid(vehicledata[i]);
         if (valid) {
-          const agentExist = Agent.exists({ _id: vehicledata[i]});
+          const agentExist = Agent.exists({ _id: vehicledata[i] });
           if (!agentExist) {
             return res.status(500).json({
               error: "Agent not exist",
