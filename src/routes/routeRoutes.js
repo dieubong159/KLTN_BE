@@ -6,10 +6,23 @@ const Route = mongoose.model("Route");
 const router = express.Router();
 
 router.get("/routes", async (req, res) => {
-  // const routes = await Route.find();
-  // res.status(200).send(routes);
-  const params = req.params;
+  const params = req.query;
   console.log(params);
+  const routes = await Route.find({
+    startLocation: params.departureLocation,
+    endLocation: params.arriveLocation,
+    departureDate: params.departureDate,
+  })
+    .populate("startLocation")
+    .populate("endLocation");
+  if (routes.length !== 0) {
+    console.log(routes);
+    res.status(200).send(routes);
+  } else {
+    const routes = await Route.find();
+    res.status(200).send(routes);
+    // console.log(routes);
+  }
 });
 
 router.post("/routes", async (req, res) => {
