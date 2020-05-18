@@ -2,27 +2,33 @@ const mongoose = require("mongoose");
 
 const vehicleSchema = mongoose.Schema({
   type: {
-    type: String
+    type: Number,
   },
-  name: { 
-    type: String 
+  name: {
+    type: String,
+  },
+  numberSeats: {
+    type: Number,
+  },
+  licensePlates: {
+    type: String,
   },
   startLocation: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "Location"
+    ref: "Location",
   },
   endLocation: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "Location"
+    ref: "Location",
   },
   status: {
     type: Number,
-    default: 0
+    default: 0,
   },
   agent: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "Agent"
-  }
+    ref: "Agent",
+  },
 });
 
 mongoose.model("Vehicle", vehicleSchema);

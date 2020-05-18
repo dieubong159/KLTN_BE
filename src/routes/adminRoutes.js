@@ -2,6 +2,7 @@ var express = require("express");
 const mongoose = require("mongoose");
 var router = express.Router();
 var bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
 
 const AdminModel = require("../models/Admin");
 
@@ -101,6 +102,29 @@ router.delete("/admin/:admin_id", async (req, res) => {
         error: error,
       });
     });
+});
+
+router.post("/admin/signin", async (req, res) => {
+  const { username, password } = req.body;
+
+  if (!username || !password) {
+    return res
+      .status(422)
+      .send({ error: "Must provide username and password" });
+  }
+
+  const admin = await Admin.findOne({ username });
+  if (!admin) {
+    return res.status(422).send({ error: "Invalid password or username" });
+  }
+
+  try {
+    await admin.comparePassword(password);
+    const token = jwt.sign({ adminId: admin._id }, "KLTN-Booking");
+    res.status(200).send({ token });
+  } catch (err) {
+    return res.status(422).send({ error: "Invalid password or username" });
+  }
 });
 
 module.exports = router;
