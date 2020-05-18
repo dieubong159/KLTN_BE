@@ -20,7 +20,9 @@ router.post("/signup", async (req, res) => {
     });
     await user.save();
 
-    const token = jwt.sign({ userId: user._id }, "KLTN-Booking");
+    const token = jwt.sign({ userId: user._id }, "KLTN-Booking", {
+      expiresIn: "24h",
+    });
     res.send({ token });
   } catch (err) {
     console.log(err.message);
