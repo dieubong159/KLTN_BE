@@ -16,12 +16,10 @@ router.get("/route", async (req, res) => {
     .populate("startLocation")
     .populate("endLocation");
   if (routes.length !== 0) {
-    console.log(routes);
     res.status(200).send(routes);
   } else {
     const routes = await Route.find();
     res.status(200).send(routes);
-    // console.log(routes);
   }
 });
 
@@ -55,15 +53,16 @@ router.post("/route", async (req, res) => {
 });
 
 router.patch("/route/:route_id", async (req, res) => {
-  Route.findById(req.params.route_id, function (err, Route) {
+  Route.findById(req.params.route_id, function (err, route) {
     if (err) {
       res.status(500).json({ error: err });
     }
     var routedata = req.body;
+    delete routedata._id;
     for (let i in routedata) {
-      Route[i] = routedata[i];
+      route[i] = routedata[i];
     }
-    Route.save()
+    route.save()
       .then(() => {
         res.status(200).json({
           message: "Location changed successfully!",

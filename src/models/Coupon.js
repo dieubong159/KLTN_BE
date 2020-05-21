@@ -3,19 +3,21 @@ const mongoose = require("mongoose");
 const couponSchema = mongoose.Schema({
   user: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "User"
+    ref: "User",
   },
   receivedDate: { type: Date },
-  code: { type: mongoose.Schema.Types.ObjectId, ref: "CouponCode" }
+  code: { type: mongoose.Schema.Types.ObjectId, ref: "CouponCode" },
 });
 
-const discountSchema = mongoose.Schema({
+const paymentSchema = mongoose.Schema({
   booking: { type: mongoose.Schema.Types.ObjectId, ref: "Booking" },
   counpon: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "Coupon"
+    ref: "Coupon",
   },
-  usedDate: { type: Date }
+  pricePayment: { type: Number },
+  price: { type: Number },
+  paymentTime: { type: Date },
 });
 
 const couponCodeSchema = mongoose.Schema({
@@ -23,8 +25,9 @@ const couponCodeSchema = mongoose.Schema({
   expiredDate: { type: Date },
   discountRate: { type: Number },
   createBy: { type: mongoose.Schema.Types.ObjectId, ref: "Admin" },
-  createDate: { type: Date }
+  createDate: { type: Date },
 });
 
 mongoose.model("Counpon", couponSchema);
 mongoose.model("CouponCode", couponCodeSchema);
+mongoose.model("Payment", paymentSchema);

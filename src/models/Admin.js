@@ -5,14 +5,15 @@ var Schema = mongoose.Schema;
 const adminSchema = Schema({
   username: { type: String, required: true, unique: true },
   password: { type: String, required: true },
-  name: { type: String },
-  status: { type: Number }
+  email: { type: String },
+  admintype: { type: Number },
 });
 
 const managementSchema = Schema({
   agent: { type: mongoose.Schema.Types.ObjectId, ref: "Agent" },
   admin: { type: mongoose.Schema.Types.ObjectId, ref: "Admin" },
-  isCreator: { type: Boolean }
+  isCreator: { type: String },
+  isroot :{type : Boolean}
 });
 
 
@@ -34,7 +35,9 @@ adminSchema.methods.comparePassword = function (candidatePassword) {
 };
 
 exports.adminSchema = adminSchema;
+exports.managementSchema = managementSchema;
 
 mongoose.model("Admin", adminSchema);
+mongoose.model("ManagementAdmin", managementSchema);
 
 

@@ -1,22 +1,29 @@
 const mongoose = require("mongoose");
 
-const ticketSchema = mongoose.Schema({
-  seatNumber: { type: Number },
-  startTime: { type: Date },
-  price: { type: Number }
-});
+const expiredTime = (h)=>{
+  var today = new Date();
+  today.setHours(today.getHours()+ h);
+  return today;
+}
+
 
 const bookingSchema = mongoose.Schema({
   route: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "Route"
+    ref: "Route",
   },
+  seatNumber: { type: Number },
   seatStatus: {
-    type: Number
+    type: Number,
   },
-  tickets: [ticketSchema],
-  bookingTime: { type: String },
-  status: { type: Number }
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+  },
+  price: { type: Number },
+  bookingTime: { type: Date, default: Date.now(), },
+  bookingExpiredTime: { type: Date, default: expiredTime(5), },
+  status: { type: Number },
 });
 
 mongoose.model("Booking", bookingSchema);

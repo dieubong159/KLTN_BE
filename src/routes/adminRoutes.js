@@ -4,9 +4,9 @@ var router = express.Router();
 var bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 
-const AdminModel = require("../models/Admin");
-
 const Admin = mongoose.model("Admin");
+const ManagementAdmin = mongoose.model("ManagementAdmin");
+const Agent = mongoose.model("Agent");
 
 router.post("/admin", async (req, res, next) => {
   const admin = new Admin(req.body);
@@ -21,9 +21,7 @@ router.post("/admin", async (req, res, next) => {
       admin
         .save()
         .then(() => {
-          res.status(200).json({
-            message: "Admin added successfully!",
-          });
+          res.status(200).send(admin);
         })
         .catch((error) => {
           res.status(500).json({
@@ -120,11 +118,87 @@ router.post("/admin/signin", async (req, res) => {
 
   try {
     await admin.comparePassword(password);
-    const token = jwt.sign({ adminId: admin._id }, "KLTN-Booking");
+    const token = jwt.sign({ adminId: admin._id }, "KLTN-Booking",{
+      expiresIn: "24h",
+    });
     res.status(200).send({ token });
   } catch (err) {
     return res.status(422).send({ error: "Invalid password or username" });
   }
 });
+
+
+router.get("/managementadmin", async (req, res) => {
+  var listManagementAdmin = await ManagementAdmin.find();
+  res.status(200).send(listManagementAdmin);
+});
+
+router.get("/managementadmin/:management_id", async (req, res) => {
+  ManagementAdmin.findById(req.params.management_id).then((result) => {
+    result = result.toJSON();
+    delete result.__v;
+    res.status(200).send(result);
+  });
+});
+
+router.get("/managementadmin/checkagent", async (req, res) => {
+  var query = { agent: req.body.agent };
+  ManagementAdmin.find(query).then((result) => {
+    //result = result.toJSON();
+    delete result.__v;
+    res.status(200).send(result);
+  });
+});
+
+router.get("/managementadmin/checkadmin", async (req, res) => {
+  var query = { admin: req.body.admin };
+  ManagementAdmin.find(query).then((result) => {
+    //result = result.toJSON();
+    delete result.__v;
+    res.status(200).send(result);
+  });
+});
+
+router.post("/managementadmin", async (req, res) =>{
+  const management = new ManagementAdmin(req.body);
+  var validAgent = mongoose.Types.ObjectId.isValid(management.agent);
+  var validAdmin = mongoose.Types.ObjectId.isValid(management.admin);
+
+  if(validAgent && validAdmin){
+    const agentExist = await Agent.exists({ _id: management.agent });
+    const adminExist = await Admin.exists({ _id: management.admin });
+    if (!agentExist) {
+      return res.status(500).json({
+        error: "Agent not exist",
+      });
+    }
+    if (!adminExist) {
+      return res.status(500).json({
+        error: "Admin not exist",
+      });
+    }
+  }
+  else{
+    return res.status(500).json({
+      error: "Not a valid ID",
+    });
+  }
+  management
+    .save()
+    .then(() => {
+      res.status(200).json({
+        message: "Management added successfully!",
+      });
+    })
+    .catch((error) => {
+      res.status(500).json({
+        error: error,
+      });
+    });
+});
+
+// router.patch("/managementadmin/:management_id", async (req, res) => {
+
+// });
 
 module.exports = router;
