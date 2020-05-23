@@ -11,12 +11,12 @@ router.post("/signup", async (req, res) => {
   console.log(signupInformation);
   try {
     const user = new User({
-      phone: signupInformation.phonenumber,
+      phoneNumber: signupInformation.phoneNumber,
       password: signupInformation.password,
       email: signupInformation.email,
-      fullName: signupInformation.name,
-      userAgent: signupInformation.user_agent,
-      avatar: signupInformation.photo_url,
+      fullName: signupInformation.fullName,
+      userAgent: signupInformation.userAgent,
+      avatar: signupInformation.avatar,
     });
     await user.save();
 
@@ -45,17 +45,16 @@ router.get("/oauth/:user_agent", async (req, res) => {
 });
 
 router.post("/signin", async (req, res) => {
-  const { phonenumber, password } = req.body;
-
-  if (!phonenumber || !password) {
+  const { phoneNumber, password } = req.body.params;
+  if (!phoneNumber || !password) {
     return res
       .status(422)
       .send({ error: "Must provide phonenumber and password" });
   }
 
-  const user = await User.findOne({ phonenumber });
+  const user = await User.findOne({ phoneNumber: phoneNumber });
   if (!user) {
-    return res.status(422).send({ error: "Invalid password or phonenumber" });
+    return res.status(422).send({ error: "Invalid password or phoneNumber" });
   }
 
   try {
