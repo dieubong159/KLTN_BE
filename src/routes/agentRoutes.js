@@ -48,13 +48,13 @@ router.post("/agent", async (req, res, next) => {
 router.patch("/agent/:agent_id", async (req, res) => {
   var agentdata = req.body;
   if (agentdata.password) {
-      bcrypt.genSalt(10, function (err, salt) {
-          if (err) return next(err);
-          bcrypt.hash(agentdata.password, salt, (err, hash) => {
-              if (err) return next(err);
-              agentdata.password = hash;
-          });
+    bcrypt.genSalt(10, function (err, salt) {
+      if (err) return next(err);
+      bcrypt.hash(agentdata.password, salt, (err, hash) => {
+        if (err) return next(err);
+        agentdata.password = hash;
       });
+    });
   }
   Agent.findById(req.params.agent_id, function (err, agent) {
     for (let i in agentdata) {

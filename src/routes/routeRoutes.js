@@ -16,7 +16,6 @@ router.get("/route", async (req, res) => {
     .populate("startLocation")
     .populate("endLocation");
   if (routes.length !== 0) {
-    console.log(routes);
     res.status(200).send(routes);
   } else {
     const routes = await Route.find();

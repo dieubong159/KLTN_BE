@@ -10,7 +10,7 @@ const randomStr = (len, arr) => {
 };
 
 const userSchema = mongoose.Schema({
-  phone: {
+  phoneNumber: {
     type: String,
     required: true,
     unique: true,
