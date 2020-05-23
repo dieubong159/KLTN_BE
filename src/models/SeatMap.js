@@ -13,4 +13,24 @@ const seatMapSchema = mongoose.Schema({
   }
 });
 
+const mapSchema = mongoose.Schema({
+  agent: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Agent"
+  },
+  type: {
+    type: Number
+  },
+  Width: {
+    type: Number
+  },
+  Height: {
+    type: Number
+  },
+  OrderType:{
+    type:Number
+  }
+});
+
 mongoose.model("SeatMap", seatMapSchema);
+mongoose.model("Map", mapSchema);

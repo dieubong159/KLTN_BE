@@ -121,7 +121,7 @@ router.post("/admin/signin", async (req, res) => {
     const token = jwt.sign({ adminId: admin._id }, "KLTN-Booking",{
       expiresIn: "24h",
     });
-    res.status(200).send({ token });
+    res.status(200).send({ token :token, id:admin._id });
   } catch (err) {
     return res.status(422).send({ error: "Invalid password or username" });
   }
