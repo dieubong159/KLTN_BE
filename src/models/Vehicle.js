@@ -7,7 +7,7 @@ const vehicleSchema = mongoose.Schema({
   name: {
     type: String,
   },
-  numberSeats: {
+  totalSeats: {
     type: Number,
   },
   licensePlates: {
@@ -28,7 +28,7 @@ const vehicleSchema = mongoose.Schema({
   agent: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Agent",
-  },
+  }
 });
 
 mongoose.model("Vehicle", vehicleSchema);

@@ -118,15 +118,14 @@ router.post("/admin/signin", async (req, res) => {
 
   try {
     await admin.comparePassword(password);
-    const token = jwt.sign({ adminId: admin._id }, "KLTN-Booking",{
+    const token = jwt.sign({ adminId: admin._id }, "KLTN-Booking", {
       expiresIn: "24h",
     });
-    res.status(200).send({ token :token, id:admin._id });
+    res.status(200).send({ token: token, id: admin._id });
   } catch (err) {
     return res.status(422).send({ error: "Invalid password or username" });
   }
 });
-
 
 router.get("/managementadmin", async (req, res) => {
   var listManagementAdmin = await ManagementAdmin.find();
@@ -141,8 +140,8 @@ router.get("/managementadmin/:management_id", async (req, res) => {
   });
 });
 
-router.get("/managementadmin/checkagent", async (req, res) => {
-  var query = { agent: req.body.agent };
+router.get("/management/managementlistbyAgent/:agent_id", async (req, res) => {
+  var query = { agent: req.params.agent_id };
   ManagementAdmin.find(query).then((result) => {
     //result = result.toJSON();
     delete result.__v;
@@ -150,8 +149,8 @@ router.get("/managementadmin/checkagent", async (req, res) => {
   });
 });
 
-router.get("/managementadmin/checkadmin", async (req, res) => {
-  var query = { admin: req.body.admin };
+router.get("/management/managementlistbyAdmin/:admin_id", async (req, res) => {
+  var query = { admin: req.params.admin_id };
   ManagementAdmin.find(query).then((result) => {
     //result = result.toJSON();
     delete result.__v;
@@ -159,12 +158,12 @@ router.get("/managementadmin/checkadmin", async (req, res) => {
   });
 });
 
-router.post("/managementadmin", async (req, res) =>{
+router.post("/managementadmin", async (req, res) => {
   const management = new ManagementAdmin(req.body);
   var validAgent = mongoose.Types.ObjectId.isValid(management.agent);
   var validAdmin = mongoose.Types.ObjectId.isValid(management.admin);
 
-  if(validAgent && validAdmin){
+  if (validAgent && validAdmin) {
     const agentExist = await Agent.exists({ _id: management.agent });
     const adminExist = await Admin.exists({ _id: management.admin });
     if (!agentExist) {
@@ -177,8 +176,7 @@ router.post("/managementadmin", async (req, res) =>{
         error: "Admin not exist",
       });
     }
-  }
-  else{
+  } else {
     return res.status(500).json({
       error: "Not a valid ID",
     });
@@ -197,8 +195,8 @@ router.post("/managementadmin", async (req, res) =>{
     });
 });
 
-// router.patch("/managementadmin/:management_id", async (req, res) => {
+router.patch("/managementadmin/:management_id", async (req, res) => {
 
-// });
+});
 
 module.exports = router;
