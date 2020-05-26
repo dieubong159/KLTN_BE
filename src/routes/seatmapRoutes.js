@@ -89,19 +89,19 @@ router.post("/seatmap", async (req, res) => {
 
 router.post("/map", async (req, res) => {
   const map = new Map(req.body);
-  var validAgent = mongoose.Types.ObjectId.isValid(map.agent);
-  if (validAgent) {
-    const agentExist = await Agent.exists({ _id: map.agent });
-    if (!agentExist) {
-      return res.status(500).json({
-        error: "Agent not exist",
-      });
-    }
-  }else{
-    return res.status(500).json({
-      error: "Not a valid ID",
-    });
-  }
+  //var validAgent = mongoose.Types.ObjectId.isValid(map.agent);
+  // if (validAgent) {
+  //   const agentExist = await Agent.exists({ _id: map.agent });
+  //   if (!agentExist) {
+  //     return res.status(500).json({
+  //       error: "Agent not exist",
+  //     });
+  //   }
+  // }else{
+  //   return res.status(500).json({
+  //     error: "Not a valid ID",
+  //   });
+  // }
   map
     .save()
     .then(() => {

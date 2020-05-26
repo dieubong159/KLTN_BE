@@ -3,17 +3,34 @@ const mongoose = require("mongoose");
 var router = express.Router();
 
 const Agent = mongoose.model("Agent");
+const Map = mongoose.model("Map");
+const Const = mongoose.model("Const");
 
 router.get("/agent", async (req, res) => {
   const agents = await Agent.find();
   res.status(200).send(agents);
 });
 
-router.get("/agent/:agent_id", async (req, res) => {
-  Agent.findById(req.params.agent_id).then((result) => {
-    result = result.toJSON();
-    delete result.__v;
-    res.status(200).send(result);
+// router.get("/agent/:agent_id", async (req, res) => {
+//   // Agent.findById(req.params.agent_id).then((result) => {
+//   //   result = result.toJSON();
+//   //   delete result.__v;
+//   //   res.status(200).send(result);
+//   // });
+// });
+
+router.get("/agent/addAgentData", async (req, res) => {
+  var defaultMaps = await Map.find({ agent: null }).populate("type").populate("orderType");
+  var vehicleAndOrderTypes = await Const.find({ 
+    $or: [
+      { type: "loai_xe" },
+      { type: "kieu_xep_loai_danh_so" }
+    ]
+  });
+  
+  res.send({
+    defaultMaps: defaultMaps,
+    vehicleAndOrderTypes: vehicleAndOrderTypes
   });
 });
 

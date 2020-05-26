@@ -19,16 +19,16 @@ const mapSchema = mongoose.Schema({
     ref: "Agent"
   },
   type: {
+    type: mongoose.Schema.Types.ObjectId, ref: "Const"
+  },
+  width: {
     type: Number
   },
-  Width: {
+  height: {
     type: Number
   },
-  Height: {
-    type: Number
-  },
-  OrderType:{
-    type:Number
+  orderType: {
+    type: mongoose.Schema.Types.ObjectId, ref: "Const"
   }
 });
 
