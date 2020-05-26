@@ -9,6 +9,7 @@ require("./models/Schedule");
 require("./models/SeatMap");
 require("./models/Track");
 require("./models/Vehicle");
+require("./models/Consts");
 const express = require("express");
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
@@ -25,6 +26,7 @@ const seatmapRoutes = require("./routes/seatmapRoutes");
 const trackRoutes = require("./routes/trackRoutes");
 const userRoutes = require("./routes/userRoutes");
 const vehicleRoutes = require("./routes/vehicleRoutes");
+const constRoutes = require("./routes/constRoutes");
 
 const app = express();
 
@@ -44,6 +46,7 @@ app.use(seatmapRoutes);
 // app.use(trackRoutes);
 // app.use(userRoutes);
 app.use(vehicleRoutes);
+app.use(constRoutes);
 
 const mongoUri =
   "mongodb+srv://dieubong159:dieu16110291@reactnative-obpke.mongodb.net/test?retryWrites=true&w=majority";

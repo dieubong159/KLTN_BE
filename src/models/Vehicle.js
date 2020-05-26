@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 
 const vehicleSchema = mongoose.Schema({
   type: {
-    type: Schema.Types.ObjectId, ref: "Const"
+    type: mongoose.Schema.Types.ObjectId, ref: "Const"
   },
   name: {
     type: String,
