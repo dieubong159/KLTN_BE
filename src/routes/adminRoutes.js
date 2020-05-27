@@ -128,34 +128,40 @@ router.post("/admin/signin", async (req, res) => {
 });
 
 router.get("/managementadmin", async (req, res) => {
-  var listManagementAdmin = await ManagementAdmin.find();
+  var listManagementAdmin = await ManagementAdmin.find().populate("agent").populate("admin");
   res.status(200).send(listManagementAdmin);
 });
 
 router.get("/managementadmin/:management_id", async (req, res) => {
-  ManagementAdmin.findById(req.params.management_id).then((result) => {
-    result = result.toJSON();
-    delete result.__v;
-    res.status(200).send(result);
-  });
+  var management = ManagementAdmin.findById(req.params.management_id).populate("agent").populate("admin");
+  res.status(200).send(management);
+  // ManagementAdmin.findById(req.params.management_id).then((result) => {
+  //   result = result.toJSON();
+  //   delete result.__v;
+  //   res.status(200).send(result);
+  // });
 });
 
 router.get("/management/managementlistbyAgent/:agent_id", async (req, res) => {
   var query = { agent: req.params.agent_id };
-  ManagementAdmin.find(query).then((result) => {
-    //result = result.toJSON();
-    delete result.__v;
-    res.status(200).send(result);
-  });
+  var listmanagement = await ManagementAdmin.find(query).populate("agent").populate("admin");
+  res.status(200).send(listmanagement);
+  // ManagementAdmin.find(query).then((result) => {
+  //   //result = result.toJSON();
+  //   delete result.__v;
+  //   res.status(200).send(result);
+  // });
 });
 
 router.get("/management/managementlistbyAdmin/:admin_id", async (req, res) => {
   var query = { admin: req.params.admin_id };
-  ManagementAdmin.find(query).then((result) => {
-    //result = result.toJSON();
-    delete result.__v;
-    res.status(200).send(result);
-  });
+  var listmanagement = await ManagementAdmin.find(query).populate("agent").populate("admin");
+  res.status(200).send(listmanagement);
+  // ManagementAdmin.find(query).then((result) => {
+  //   //result = result.toJSON();
+  //   delete result.__v;
+  //   res.status(200).send(result);
+  // });
 });
 
 router.post("/managementadmin", async (req, res) => {

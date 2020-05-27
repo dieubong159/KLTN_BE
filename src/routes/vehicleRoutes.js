@@ -8,16 +8,29 @@ const Location = mongoose.model("Location");
 const router = express.Router();
 
 router.get("/vehicle", async (req, res) => {
-  const routes = await Vehicle.find();
+  const routes = await Vehicle.find()
+    .populate("startLocation")
+    .populate("endLocation")
+    .populate("agent");
   res.status(200).send(routes);
 });
 
 router.get("/vehicle/:vehicle_id", async (req, res) => {
-  Vehicle.findById(req.params.vehicle_id).then((result) => {
-    result = result.toJSON();
-    delete result.__v;
-    res.status(200).send(result);
-  });
+  Vehicle.findById(req.params.vehicle_id)
+    .populate("startLocation")
+    .populate("endLocation")
+    .populate("agent")
+    .then((result) => {
+      result = result.toJSON();
+      delete result.__v;
+      res.status(200).send(result);
+    });
+  //res.status(200).send(vehicle);
+  // Vehicle.findById(req.params.vehicle_id).then((result) => {
+  //   result = result.toJSON();
+  //   delete result.__v;
+  //   res.status(200).send(result);
+  // });
 });
 router.post("/vehicle", async (req, res) => {
   const vehicle = new Vehicle(req.body);

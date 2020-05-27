@@ -7,28 +7,54 @@ const router = express.Router();
 
 router.get("/route", async (req, res) => {
   const params = req.query;
-  console.log(params);
   const routes = await Route.find({
     startLocation: params.departureLocation,
     endLocation: params.arriveLocation,
     departureDate: params.departureDate,
   })
     .populate("startLocation")
-    .populate("endLocation");
+    .populate("endLocation")
+    .populate("vehicle");
   if (routes.length !== 0) {
     res.status(200).send(routes);
   } else {
-    const routes = await Route.find();
+    const routes = await Route.find()
+      .populate("startLocation")
+      .populate("endLocation")
+      .populate({
+        path: "vehicle",
+        model: "Vehicle",
+        populate: {
+          path: "startLocation endLocation agent",
+        },
+      });
     res.status(200).send(routes);
   }
 });
 
 router.get("/route/:route_id", async (req, res) => {
-  Route.findById(req.params.route_id).then((result) => {
-    result = result.toJSON();
-    delete result.__v;
-    res.status(200).send(result);
-  });
+  Route.findById(req.params.route_id)
+    .populate("startLocation")
+    .populate("endLocation")
+    .populate({
+      path: "vehicle",
+      model: "Vehicle",
+      populate: {
+        path: "startLocation endLocation agent",
+      },
+    })
+    .then((result) => {
+      result = result.toJSON();
+      delete result.__v;
+      res.status(200).send(result);
+    });
+
+  //res.status(200).send(route);
+  // Route.findById(req.params.route_id).then((result) => {
+  //   result = result.toJSON();
+  //   delete result.__v;
+  //   res.status(200).send(result);
+  // });
 });
 
 router.post("/route", async (req, res) => {
@@ -62,7 +88,8 @@ router.patch("/route/:route_id", async (req, res) => {
     for (let i in routedata) {
       route[i] = routedata[i];
     }
-    route.save()
+    route
+      .save()
       .then(() => {
         res.status(200).json({
           message: "Location changed successfully!",
