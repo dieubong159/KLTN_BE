@@ -20,18 +20,8 @@ router.get("/agent", async (req, res) => {
 // });
 
 router.get("/agent/addAgentData", async (req, res) => {
-  var defaultMaps = await Map.find({ agent: null }).populate("type").populate("orderType");
-  var vehicleAndOrderTypes = await Const.find({ 
-    $or: [
-      { type: "loai_xe" },
-      { type: "kieu_xep_loai_danh_so" }
-    ]
-  });
-  
-  res.send({
-    defaultMaps: defaultMaps,
-    vehicleAndOrderTypes: vehicleAndOrderTypes
-  });
+  var orderTypes = await Const.find({ type: "kieu_xep_loai_danh_so" });
+  res.send({ orderTypes: orderTypes });
 });
 
 router.post("/agent", async (req, res, next) => {

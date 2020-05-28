@@ -11,9 +11,9 @@ const locationSchema = mongoose.Schema({
     default: Date.now,
   },
   coords: {
-    latitude: String,
-    longtitude: String,
-    altitude: String,
+    latitude: Number,
+    longtitude: Number,
+    altitude: Number,
     accuracy: String,
     heading: String,
     speed: String,
