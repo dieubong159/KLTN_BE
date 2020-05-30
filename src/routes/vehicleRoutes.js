@@ -11,7 +11,8 @@ router.get("/vehicle", async (req, res) => {
   const routes = await Vehicle.find()
     .populate("startLocation")
     .populate("endLocation")
-    .populate("agent");
+    .populate("agent")
+    .populate("type");
   res.status(200).send(routes);
 });
 
@@ -127,6 +128,68 @@ router.delete("/vehicle/:vehicle_id", async (req, res) => {
         error: error,
       });
     });
+});
+
+
+router.post("/vehicle/addvehicleandseatmap", async (req, res) => { 
+  var data = req.body;
+  const startLocation = new Location({
+    address : data.locationFrom,
+    coords:{
+      latitude: data.latitudeStartLocation,
+      longtitude: data.longtitudeStartLocation
+    }
+  });
+
+  const endLocation = new Location({
+    address : data.locationTo,
+    coords:{
+      latitude: data.latitudeEndLocation,
+      longtitude: data.longtitudeEndLocation
+    }
+  });
+  const vehicle = new Vehicle({
+    type: data.vehicleType,
+    name : data.name,
+    totalSeats:data.totalSeats,
+    licensePlates: data.licensePlates,
+    startLocation: startLocation._id,
+    endLocation: endLocation._id,
+    agent: data.vehicleAgent
+  });
+
+  var locationFromcheck = await Location.findOne({
+    coords:{
+      latitude: startLocation.coords.latitude,
+      longtitude: startLocation.coords.longtitude
+    }
+  });
+  console.log(locationFromcheck);
+  if(!locationFromcheck){
+    startLocation.save();
+  }
+  else{
+    vehicle.startLocation = locationFromcheck._id;
+  }
+
+  var locationtocheck = await Location.findOne({
+    coords:{
+      latitude: endLocation.coords.latitude,
+      longtitude: endLocation.coords.longtitude
+    }
+  });
+  if(!locationtocheck){
+    endLocation.save();
+  }else{
+    vehicle.endLocation = locationtocheck._id;
+  }
+
+  vehicle.save();
+  res.status(200).json({
+    message: "Data save changed successfully!",
+  });
+
+
 });
 
 module.exports = router;
