@@ -4,6 +4,7 @@ const mongoose = require("mongoose");
 const Vehicle = mongoose.model("Vehicle");
 const Agent = mongoose.model("Agent");
 const Location = mongoose.model("Location");
+const SeatMap = mongoose.model("SeatMap");
 
 const router = express.Router();
 
@@ -132,7 +133,7 @@ router.delete("/vehicle/:vehicle_id", async (req, res) => {
 
 
 router.post("/vehicle/addvehicleandseatmap", async (req, res) => { 
-  var data = req.body;
+  var data = req.body.vehicleData;
   const startLocation = new Location({
     address : data.locationFrom,
     coords:{
@@ -184,7 +185,19 @@ router.post("/vehicle/addvehicleandseatmap", async (req, res) => {
     vehicle.endLocation = locationtocheck._id;
   }
 
+  let seatMap = req.body.seatMap;
+  seatMap.forEach(item => {
+    let seat = new SeatMap({
+      vehicle: vehicle._id,
+      index: item.item1,
+      seatNumber: item.item2
+    });
+
+    seat.save();
+  });
+
   vehicle.save();
+
   res.status(200).json({
     message: "Data save changed successfully!",
   });

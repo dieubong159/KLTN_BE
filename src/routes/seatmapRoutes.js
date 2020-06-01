@@ -58,6 +58,41 @@ router.get("/seatmap", async (req, res) => {
   res.status(200).send(listseatmap);
 });
 
+router.get('/mapbyagent', async (req, res) => {
+  let agentId = req.query.agentId;
+  let vehicleType = req.query.vehicleType;
+
+  if (agentId && vehicleType) {
+    let map = await Map.findOne({ agent: agentId, type: vehicleType })
+      .populate('orderType')
+      .populate('agent')
+      .populate('type');
+
+    if (map) {
+      return res.send({
+        statusCode: 200,
+        state: "Successfull",
+        message: "Successfull",
+        data: map
+      });
+    }
+
+    return res.send({
+      statusCode: 404,
+      state: "Failed",
+      message: "Map does not find with input parameters",
+      data: null
+    });
+  }
+
+  return res.send({
+    statusCode: 400,
+    state: 'Failed',
+    message: 'Expected parameters adgentId or vehicleType is missing',
+    data: null
+  });
+});
+
 router.post("/seatmap", async (req, res) => {
   const seatmap = new SeatMap(req.body);
   var validVehicle = mongoose.Types.ObjectId.isValid(seatmap.vehicle);
