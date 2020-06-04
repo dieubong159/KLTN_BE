@@ -9,8 +9,12 @@ const seatMapSchema = mongoose.Schema({
     type: Number
   },
   seatNumber: {
-    type: Number
-  }
+    type: String
+  },
+  mapDetail: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Map"
+  },
 });
 
 const mapSchema = mongoose.Schema({

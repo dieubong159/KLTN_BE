@@ -2,10 +2,6 @@ var express = require("express");
 const mongoose = require("mongoose");
 var router = express.Router();
 
-const AVAILABLE = 0;
-const UNAVAILABLE = 1;
-const PENDING = 2;
-
 const SeatMap = mongoose.model("SeatMap");
 const Map = mongoose.model("Map");
 const Vehicle = mongoose.model("Vehicle");
@@ -14,43 +10,64 @@ const Route = mongoose.model("Route");
 const Booking = mongoose.model("Booking");
 
 router.get("/seatmap/:route_id", async (req, res) => {
-  var route = null;
-  var vehicle = null;
-  var booking = null;
-  var seatmap = null;
-  var seatmapselect = [];
-  Route.findById(req.params.route_id)
-    .populate("vehicle")
-    .then((result) => {
-      result = result.toJSON();
-      //delete result.__v;
-      route = result;
-      console.log(route);
-      var query = { vehicle: route.vehicle._id };
-      SeatMap.find(query).then((result) => {
-        //result = result.toJSON();
-        //delete result.__v;
-        seatmap = result;
-        seatmap.forEach((item) => {
-          if (item.seatNumber != null) {
-            seatmapselect.push(item);
-          }
-        });
-        var querybooking = { route: req.params.route_id };
-        Booking.find(querybooking).then((result) => {
-          booking = result;
-        });
-        seatmapselect.forEach((item) => {
-          
-          booking.forEach((e)=>{
-            if((item.seatNumber === e.seatNumber) && (e.seatStatus === UNAVAILABLE)){
+  var routeSelect = await Route.findById(req.params.route_id).populate(
+    "vehicle"
+  );
 
-            }
-          });
-          // check seatmap dang duyet co ton tai trong Dat cho hay ko
-        });
-      });
-    });
+  var querySeatMap = { vehicle: routeSelect.vehicle._id };
+  var seatmap = await SeatMap.find(querySeatMap).populate({
+    path: "mapDetail",
+    model: "Map",
+    populate: { path: "type orderType" },
+  });
+
+  console.log(seatmap)
+
+  var querybooking = { route: req.params.route_id };
+  var booking = await Booking.find(querybooking).populate("seatStatus");
+
+  let seatMapStatus = seatmap.map((seat) => {
+    if (seat.seatNumber) {
+      let seatState = { seatStatus: "trong", displayStatus: "Ghế trống" };
+      let book = booking.find((e) => e.seatNumber == seat.seatNumber);
+      if (book) {
+        seatState = {
+          seatStatus: book.seatStatus.value,
+          displayStatus: book.seatStatus.displayValue,
+        };
+      }
+
+      return {
+        index: seat.index,
+        seatNumber: seat.seatNumber,
+        seatState: seatState,
+      };
+    }
+
+    return {
+      index: seat.index,
+      seatNumber: null,
+      seatState: null,
+    };
+  });
+
+  return res.send({
+    data: {
+      map: {
+        width: seatmap[0].mapDetail.width,
+        height: seatmap[0].mapDetail.height,
+        type: seatmap[0].mapDetail.type.value,
+        displayType: seatmap[0].mapDetail.type.displayValue,
+        orderType: seatmap[0].mapDetail.orderType.value,
+        displayOrderType: seatmap[0].mapDetail.orderType.displayValue,
+      },
+      seatMapStatus: seatMapStatus,
+    },
+  });
+  // for i in width:
+  //    for j in height:
+  //      Tim ra toa do goc tren ben trai, goc duoi ben phai => section cho ngoi thuc su
+  //
 });
 
 router.get("/seatmap", async (req, res) => {
@@ -58,22 +75,22 @@ router.get("/seatmap", async (req, res) => {
   res.status(200).send(listseatmap);
 });
 
-router.get('/mapbyagent', async (req, res) => {
+router.get("/mapbyagent", async (req, res) => {
   let agentId = req.query.agentId;
   let vehicleType = req.query.vehicleType;
 
   if (agentId && vehicleType) {
     let map = await Map.findOne({ agent: agentId, type: vehicleType })
-      .populate('orderType')
-      .populate('agent')
-      .populate('type');
+      .populate("orderType")
+      .populate("agent")
+      .populate("type");
 
     if (map) {
       return res.send({
         statusCode: 200,
         state: "Successfull",
         message: "Successfull",
-        data: map
+        data: map,
       });
     }
 
@@ -81,15 +98,15 @@ router.get('/mapbyagent', async (req, res) => {
       statusCode: 404,
       state: "Failed",
       message: "Map does not find with input parameters",
-      data: null
+      data: null,
     });
   }
 
   return res.send({
     statusCode: 400,
-    state: 'Failed',
-    message: 'Expected parameters adgentId or vehicleType is missing',
-    data: null
+    state: "Failed",
+    message: "Expected parameters adgentId or vehicleType is missing",
+    data: null,
   });
 });
 
@@ -103,7 +120,7 @@ router.post("/seatmap", async (req, res) => {
         error: "Vehicle not exist",
       });
     }
-  }else{
+  } else {
     return res.status(500).json({
       error: "Not a valid ID",
     });

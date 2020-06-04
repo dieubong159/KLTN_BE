@@ -14,13 +14,22 @@ router.get("/route", async (req, res) => {
   })
     .populate("startLocation")
     .populate("endLocation")
-    .populate("vehicle");
+    .populate("vehicle")
+    .populate("status");
   if (routes.length !== 0) {
     res.status(200).send(routes);
   } else {
     const routes = await Route.find()
       .populate("startLocation")
       .populate("endLocation")
+      .populate("status")
+      .populate({
+        path: "status",
+        model: "Const",
+        populate: {
+          path: "agent",
+        },
+      })
       .populate({
         path: "vehicle",
         model: "Vehicle",
@@ -28,6 +37,7 @@ router.get("/route", async (req, res) => {
           path: "startLocation endLocation agent",
         },
       });
+      console.log(routes);
     res.status(200).send(routes);
   }
 });
@@ -59,6 +69,7 @@ router.get("/route/:route_id", async (req, res) => {
 
 router.post("/route", async (req, res) => {
   const newRoute = req.body;
+  console.log(newRoute);
   try {
     const route = new Route({
       vehicle: newRoute.vehicle,

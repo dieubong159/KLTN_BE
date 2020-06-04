@@ -5,6 +5,7 @@ const Vehicle = mongoose.model("Vehicle");
 const Agent = mongoose.model("Agent");
 const Location = mongoose.model("Location");
 const SeatMap = mongoose.model("SeatMap");
+const Map = mongoose.model("Map");
 
 const router = express.Router();
 
@@ -22,6 +23,7 @@ router.get("/vehicle/:vehicle_id", async (req, res) => {
     .populate("startLocation")
     .populate("endLocation")
     .populate("agent")
+    .populate("type")
     .then((result) => {
       result = result.toJSON();
       delete result.__v;
@@ -185,12 +187,14 @@ router.post("/vehicle/addvehicleandseatmap", async (req, res) => {
     vehicle.endLocation = locationtocheck._id;
   }
 
+  let map = await Map.findOne({agent:data.vehicleAgent});
   let seatMap = req.body.seatMap;
   seatMap.forEach(item => {
     let seat = new SeatMap({
       vehicle: vehicle._id,
       index: item.item1,
-      seatNumber: item.item2
+      seatNumber: item.item2,
+      mapDetail : map._id
     });
 
     seat.save();

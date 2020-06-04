@@ -13,18 +13,21 @@ const bookingSchema = mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "Route",
   },
-  seatNumber: { type: Number },
+  seatNumber: { 
+    type: String 
+  },
   seatStatus: {
-    type: Number,
+    type: mongoose.Schema.Types.ObjectId, ref: "Const"
   },
   user: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
+    default: null
   },
   price: { type: Number },
   bookingTime: { type: Date, default: Date.now(), },
   bookingExpiredTime: { type: Date, default: expiredTime(5), },
-  status: { type: Number },
+  status: { type: mongoose.Schema.Types.ObjectId, ref: "Const" },
 });
 
 mongoose.model("Booking", bookingSchema);

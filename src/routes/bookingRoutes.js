@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 
 const Booking = mongoose.model("Booking");
 const Route = mongoose.model("Route");
+const Const = mongoose.model("Const");
 
 const router = express.Router();
 
@@ -13,7 +14,6 @@ router.get("/booking", async (req, res) => {
 
 router.post("/booking", async (req, res, next) => {
   const booking = new Booking(req.body);
-  console.log(booking);
 
   var validroute = mongoose.Types.ObjectId.isValid(booking.route);
 
@@ -29,6 +29,14 @@ router.post("/booking", async (req, res, next) => {
       error: "Not a valid ID",
     });
   }
+
+  var constSeats = await Const.findOne({type:"trang_thai_ghe", value: "giu_cho"});
+  var constBooking = await Const.findOne({type:"trang_thai_dat_cho", value: "cho"});
+
+  booking.seatStatus = constSeats;
+  booking.status = constBooking;
+
+  console.log(booking);
   booking
     .save()
     .then(() => {

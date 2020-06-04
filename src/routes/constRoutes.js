@@ -5,12 +5,14 @@ var router = express.Router();
 const Const = mongoose.model("Const");
 
 router.get("/const", async (req, res) => {
-  const const_list = await Const.find();
+  const const_list = await Const.find().populate("agent");
   res.status(200).send(const_list);
 });
 
 router.get("/const/:const_id", async (req, res) => {
-  Const.findById(req.params.const_id).then((result) => {
+  Const.findById(req.params.const_id)
+  .populate("agent")
+  .then((result) => {
     result = result.toJSON();
     delete result.__v;
     res.status(200).send(result);
