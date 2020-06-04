@@ -25,6 +25,7 @@ const seatmapRoutes = require("./routes/seatmapRoutes");
 const trackRoutes = require("./routes/trackRoutes");
 const userRoutes = require("./routes/userRoutes");
 const vehicleRoutes = require("./routes/vehicleRoutes");
+const otpRoutes = require("./routes/otpRoutes");
 
 const app = express();
 
@@ -44,6 +45,7 @@ app.use(routeRoutes);
 // app.use(trackRoutes);
 // app.use(userRoutes);
 app.use(vehicleRoutes);
+app.use(otpRoutes);
 
 const mongoUri =
   "mongodb+srv://dieubong159:dieu16110291@reactnative-obpke.mongodb.net/test?retryWrites=true&w=majority";

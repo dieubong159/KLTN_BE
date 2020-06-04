@@ -11,7 +11,7 @@ router.post("/signup", async (req, res) => {
   console.log(signupInformation);
   try {
     const user = new User({
-      phoneNumber: signupInformation.phoneNumber,
+      phoneNumber: "+84" + signupInformation.phoneNumber.slice(1),
       password: signupInformation.password,
       email: signupInformation.email,
       fullName: signupInformation.fullName,
@@ -34,7 +34,7 @@ router.get("/oauth/:user_agent", async (req, res) => {
   const oauthId = req.params.user_agent;
   // console.log(oauthId);
   const user = await User.findOne({ userAgent: oauthId });
-  // console.log(user);
+  console.log(user);
   if (!user || user === null) {
     res.status(422).send({ message: "This user is unregistered" });
   } else {
@@ -52,6 +52,7 @@ router.post("/signin", async (req, res) => {
       .send({ error: "Must provide phonenumber and password" });
   }
 
+  phoneNumber = "+84" + phoneNumber.slice(1);
   const user = await User.findOne({ phoneNumber: phoneNumber });
   if (!user) {
     return res.status(422).send({ error: "Invalid password or phoneNumber" });
