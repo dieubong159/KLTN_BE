@@ -95,10 +95,13 @@ router.post("/otp/check/", async (req, res) => {
   const reqId = payload.reqId;
 
   const result = await check(reqId, code);
+  console.log(result);
+
   if (result.status === "0") {
-    console.log("success");
     const status = result.status;
     res.status(200).json({ status: status });
+  } else {
+    res.status(422).send({ message: "Wrong pin code" });
   }
 });
 

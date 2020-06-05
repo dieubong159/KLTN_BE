@@ -95,4 +95,9 @@ router.post("/verifyToken", (req, res) => {
   }
 });
 
+router.post("/changePassword", (req, res) => {
+  const payload = req.body;
+  console.log(payload);
+});
+
 module.exports = router;
