@@ -31,7 +31,7 @@ const routeSchema = mongoose.Schema({
     ref: "Location",
   },
   status: {
-    type: Number,
+    type: mongoose.Schema.Types.ObjectId, ref: "Const"
   },
   price: {
     type: Number,

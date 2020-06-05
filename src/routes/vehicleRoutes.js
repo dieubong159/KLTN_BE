@@ -4,20 +4,37 @@ const mongoose = require("mongoose");
 const Vehicle = mongoose.model("Vehicle");
 const Agent = mongoose.model("Agent");
 const Location = mongoose.model("Location");
+const SeatMap = mongoose.model("SeatMap");
+const Map = mongoose.model("Map");
 
 const router = express.Router();
 
 router.get("/vehicle", async (req, res) => {
-  const routes = await Vehicle.find();
+  const routes = await Vehicle.find()
+    .populate("startLocation")
+    .populate("endLocation")
+    .populate("agent")
+    .populate("type");
   res.status(200).send(routes);
 });
 
 router.get("/vehicle/:vehicle_id", async (req, res) => {
-  Vehicle.findById(req.params.vehicle_id).then((result) => {
-    result = result.toJSON();
-    delete result.__v;
-    res.status(200).send(result);
-  });
+  Vehicle.findById(req.params.vehicle_id)
+    .populate("startLocation")
+    .populate("endLocation")
+    .populate("agent")
+    .populate("type")
+    .then((result) => {
+      result = result.toJSON();
+      delete result.__v;
+      res.status(200).send(result);
+    });
+  //res.status(200).send(vehicle);
+  // Vehicle.findById(req.params.vehicle_id).then((result) => {
+  //   result = result.toJSON();
+  //   delete result.__v;
+  //   res.status(200).send(result);
+  // });
 });
 router.post("/vehicle", async (req, res) => {
   const vehicle = new Vehicle(req.body);
@@ -114,6 +131,82 @@ router.delete("/vehicle/:vehicle_id", async (req, res) => {
         error: error,
       });
     });
+});
+
+
+router.post("/vehicle/addvehicleandseatmap", async (req, res) => { 
+  var data = req.body.vehicleData;
+  const startLocation = new Location({
+    address : data.locationFrom,
+    coords:{
+      latitude: data.latitudeStartLocation,
+      longtitude: data.longtitudeStartLocation
+    }
+  });
+
+  const endLocation = new Location({
+    address : data.locationTo,
+    coords:{
+      latitude: data.latitudeEndLocation,
+      longtitude: data.longtitudeEndLocation
+    }
+  });
+  const vehicle = new Vehicle({
+    type: data.vehicleType,
+    name : data.name,
+    totalSeats:data.totalSeats,
+    licensePlates: data.licensePlates,
+    startLocation: startLocation._id,
+    endLocation: endLocation._id,
+    agent: data.vehicleAgent
+  });
+
+  var locationFromcheck = await Location.findOne({
+    coords:{
+      latitude: startLocation.coords.latitude,
+      longtitude: startLocation.coords.longtitude
+    }
+  });
+  console.log(locationFromcheck);
+  if(!locationFromcheck){
+    startLocation.save();
+  }
+  else{
+    vehicle.startLocation = locationFromcheck._id;
+  }
+
+  var locationtocheck = await Location.findOne({
+    coords:{
+      latitude: endLocation.coords.latitude,
+      longtitude: endLocation.coords.longtitude
+    }
+  });
+  if(!locationtocheck){
+    endLocation.save();
+  }else{
+    vehicle.endLocation = locationtocheck._id;
+  }
+
+  let map = await Map.findOne({agent:data.vehicleAgent});
+  let seatMap = req.body.seatMap;
+  seatMap.forEach(item => {
+    let seat = new SeatMap({
+      vehicle: vehicle._id,
+      index: item.item1,
+      seatNumber: item.item2,
+      mapDetail : map._id
+    });
+
+    seat.save();
+  });
+
+  vehicle.save();
+
+  res.status(200).json({
+    message: "Data save changed successfully!",
+  });
+
+
 });
 
 module.exports = router;

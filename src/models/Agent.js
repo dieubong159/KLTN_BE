@@ -22,3 +22,5 @@ const agentDetailSchema = mongoose.Schema({
 });
 
 mongoose.model("Agent", agentSchema);
+mongoose.model("AgentDetail", agentDetailSchema);
+
