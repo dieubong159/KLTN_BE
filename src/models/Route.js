@@ -31,14 +31,14 @@ const routeSchema = mongoose.Schema({
     ref: "Location",
   },
   status: {
-    type: mongoose.Schema.Types.ObjectId, ref: "Const"
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Const",
   },
   price: {
     type: Number,
   },
   departureDate: {
-    type: String,
-    default: Date.now(),
+    type: Date,
   },
 });
 

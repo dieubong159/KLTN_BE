@@ -5,41 +5,47 @@ const Route = mongoose.model("Route");
 
 const router = express.Router();
 
-router.get("/route", async (req, res) => {
-  const params = req.query;
+router.get("/route/query", async (req, res) => {
+  const payload = req.query;
+  const date = new Date(payload.departureDate.substring(0, 10) + " 00:00");
+  date.setDate(date.getDate() + 1);
+  console.log(date.toISOString());
   const routes = await Route.find({
-    startLocation: params.departureLocation,
-    endLocation: params.arriveLocation,
-    departureDate: params.departureDate,
+    startLocation: payload.startLocation,
+    endLocation: payload.endLocation,
+    departureDate: date.toISOString(),
   })
     .populate("startLocation")
     .populate("endLocation")
     .populate("vehicle")
     .populate("status");
-  if (routes.length !== 0) {
-    res.status(200).send(routes);
-  } else {
-    const routes = await Route.find()
-      .populate("startLocation")
-      .populate("endLocation")
-      .populate("status")
-      .populate({
-        path: "status",
-        model: "Const",
-        populate: {
-          path: "agent",
-        },
-      })
-      .populate({
-        path: "vehicle",
-        model: "Vehicle",
-        populate: {
-          path: "startLocation endLocation agent",
-        },
-      });
-      console.log(routes);
+  if (routes) {
+    console.log(routes.length);
     res.status(200).send(routes);
   }
+});
+
+router.get("/route", async (req, res) => {
+  const routes = await Route.find()
+    .populate("startLocation")
+    .populate("endLocation")
+    .populate("status")
+    .populate({
+      path: "status",
+      model: "Const",
+      populate: {
+        path: "agent",
+      },
+    })
+    .populate({
+      path: "vehicle",
+      model: "Vehicle",
+      populate: {
+        path: "startLocation endLocation agent",
+      },
+    });
+  // console.log(routes);
+  res.status(200).send(routes);
 });
 
 router.get("/route/:route_id", async (req, res) => {
@@ -79,7 +85,7 @@ router.post("/route", async (req, res) => {
       endLocation: newRoute.endLocation,
       status: newRoute.status,
       price: newRoute.price,
-      departureDate: newRoute.departureDate,
+      departureDate: new Date(newRoute.departureDate),
     });
     await route.save();
     res.status(200).send({ route: route });
