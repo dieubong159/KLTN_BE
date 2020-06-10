@@ -19,19 +19,28 @@ router.get("/location/:location_id", async (req, res) => {
 });
 
 router.post("/location", async (req, res) => {
-  const { address, timestamp, coords } = req.body;
+  const data = req.body;
   console.log(req.body);
-
-  if (!address) {
+  const location = new Location({
+    address : data.address,
+    coords:{
+      latitude: data.coords.latitude,
+      longtitude: data.coords.longtitude
+    }
+  });
+  var locationcheck = await Location.findOne({
+    coords:{
+      latitude: location.coords.latitude,
+      longtitude: location.coords.longtitude
+    }
+  });
+  console.log(locationcheck);
+  if(locationcheck){
     return res.status(422).send({ error: "You must provide an address" });
   }
-
-  try {
-    const location = new Location({ address, timestamp, coords });
-    await location.save();
+  else{
+    location.save();
     res.status(200).send(location);
-  } catch (error) {
-    res.status(422).send({ error: error.message });
   }
 });
 

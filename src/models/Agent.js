@@ -18,6 +18,9 @@ const agentDetailSchema = mongoose.Schema({
   location: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Location"
+  },
+  isMain:{
+    type: Number
   }
 });
 

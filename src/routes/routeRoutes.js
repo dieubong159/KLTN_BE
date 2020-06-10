@@ -53,10 +53,17 @@ router.get("/route/:route_id", async (req, res) => {
     .populate("startLocation")
     .populate("endLocation")
     .populate({
+      path: "status",
+      model: "Const",
+      populate: {
+        path: "agent",
+      },
+    })
+    .populate({
       path: "vehicle",
       model: "Vehicle",
       populate: {
-        path: "startLocation endLocation agent",
+        path: "startLocation endLocation agent type",
       },
     })
     .then((result) => {
@@ -75,7 +82,6 @@ router.get("/route/:route_id", async (req, res) => {
 
 router.post("/route", async (req, res) => {
   const newRoute = req.body;
-  console.log(newRoute);
   try {
     const route = new Route({
       vehicle: newRoute.vehicle,
