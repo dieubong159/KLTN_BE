@@ -167,7 +167,6 @@ router.post("/vehicle/addvehicleandseatmap", async (req, res) => {
       longtitude: startLocation.coords.longtitude
     }
   });
-  console.log(locationFromcheck);
   if(!locationFromcheck){
     startLocation.save();
   }
@@ -187,7 +186,7 @@ router.post("/vehicle/addvehicleandseatmap", async (req, res) => {
     vehicle.endLocation = locationtocheck._id;
   }
 
-  let map = await Map.findOne({agent:data.vehicleAgent});
+  let map = await Map.findOne({agent:data.vehicleAgent, type:data.vehicleType});
   let seatMap = req.body.seatMap;
   seatMap.forEach(item => {
     let seat = new SeatMap({

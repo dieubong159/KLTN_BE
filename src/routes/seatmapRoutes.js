@@ -21,8 +21,6 @@ router.get("/seatmap/:route_id", async (req, res) => {
     populate: { path: "type orderType" },
   });
 
-  console.log(seatmap)
-
   var querybooking = { route: req.params.route_id };
   var booking = await Booking.find(querybooking).populate("seatStatus");
 
@@ -53,6 +51,7 @@ router.get("/seatmap/:route_id", async (req, res) => {
 
   return res.send({
     data: {
+      totalSeats : routeSelect.vehicle.totalSeats,
       map: {
         width: seatmap[0].mapDetail.width,
         height: seatmap[0].mapDetail.height,
@@ -64,10 +63,6 @@ router.get("/seatmap/:route_id", async (req, res) => {
       seatMapStatus: seatMapStatus,
     },
   });
-  // for i in width:
-  //    for j in height:
-  //      Tim ra toa do goc tren ben trai, goc duoi ben phai => section cho ngoi thuc su
-  //
 });
 
 router.get("/seatmap", async (req, res) => {

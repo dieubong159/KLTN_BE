@@ -75,13 +75,15 @@ router.post("/agent/addagent", async (req, res) => {
   const agentDetailFrom = new AgentDetail({
     phonenumber:data.phoneFrom,
     location:locationFrom._id,
-    agent: agent._id
+    agent: agent._id,
+    isMain: 1
   });
 
   const agentDetailTo= new AgentDetail({
     phonenumber:data.phoneTo,
     location:locationTo._id,
-    agent: agent._id
+    agent: agent._id,
+    isMain: 1
   });
 
   const mapXeThuong = new Map({
@@ -130,7 +132,39 @@ router.post("/agent/addagent", async (req, res) => {
     locationTo.save();
   }
   await agentDetailTo.save();
+
+  let length = data.locationAddNew.length;
+  for(let i = 0;i<length;i++){
+    const locationNew = new Location({
+      address : data.locationAddNew[i],
+      coords:{
+        latitude: data.latitudeLocationAddNew[i],
+        longtitude: data.longitudeLocationAddNew[i]
+      }
+    });
   
+    const agentDetailNew = new AgentDetail({
+      phonenumber:data.phoneAddNew[i],
+      location:locationNew._id,
+      agent: agent._id,
+      isMain: 0
+    });
+
+    var locationNewcheck = await Location.findOne({
+      coords:{
+        latitude: locationNew.coords.latitude,
+        longtitude: locationNew.coords.longtitude
+      }
+    });
+    if(locationNewcheck){
+      agentDetailNew.location = locationNewcheck._id
+    }
+    else{
+      locationNew.save();
+    }
+    await agentDetailNew.save();
+  }
+
   await mapXeThuong.save();
   await mapXeGiuong.save();
   res.status(200).json({
