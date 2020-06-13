@@ -1,11 +1,13 @@
 const express = require("express");
 const mongoose = require("mongoose");
+const { json } = require("express");
 
 const Vehicle = mongoose.model("Vehicle");
 const Agent = mongoose.model("Agent");
 const Location = mongoose.model("Location");
 const SeatMap = mongoose.model("SeatMap");
 const Map = mongoose.model("Map");
+const Station = mongoose.model("Station");
 
 const router = express.Router();
 
@@ -13,28 +15,38 @@ router.get("/vehicle", async (req, res) => {
   const routes = await Vehicle.find()
     .populate("startLocation")
     .populate("endLocation")
+    .populate("startProvince")
+    .populate("endProvince")
     .populate("agent")
     .populate("type");
   res.status(200).send(routes);
 });
 
 router.get("/vehicle/:vehicle_id", async (req, res) => {
-  Vehicle.findById(req.params.vehicle_id)
-    .populate("startLocation")
-    .populate("endLocation")
-    .populate("agent")
-    .populate("type")
-    .then((result) => {
-      result = result.toJSON();
-      delete result.__v;
-      res.status(200).send(result);
-    });
-  //res.status(200).send(vehicle);
-  // Vehicle.findById(req.params.vehicle_id).then((result) => {
-  //   result = result.toJSON();
-  //   delete result.__v;
-  //   res.status(200).send(result);
-  // });
+  console.log(req.params.vehicle_id);
+  const vehicle = await Vehicle.findById(req.params.vehicle_id)
+  .populate("startLocation")
+  .populate("endLocation")
+  .populate("startProvince")
+  .populate("endProvince")
+  .populate("agent")
+  .populate("type");
+
+  var queryStation = { vehicle: req.params.vehicle_id };
+  const listStation = await Station.find(queryStation)
+  .populate("stationStop")
+  .populate("province")
+  .populate("vehicle")
+  .populate({
+    path: "vehicle",
+    model: "Vehicle",
+    populate: { path: "startLocation endLocation startProvince endProvince agent type" },
+  });
+
+  return res.send({
+    vehicles: vehicle,
+    listStations: listStation
+  });
 });
 router.post("/vehicle", async (req, res) => {
   const vehicle = new Vehicle(req.body);
@@ -136,19 +148,36 @@ router.delete("/vehicle/:vehicle_id", async (req, res) => {
 
 router.post("/vehicle/addvehicleandseatmap", async (req, res) => { 
   var data = req.body.vehicleData;
+  console.log(data);
   const startLocation = new Location({
-    address : data.locationFrom,
+    address : data.location[0],
     coords:{
-      latitude: data.latitudeStartLocation,
-      longtitude: data.longtitudeStartLocation
+      latitude: data.latitudeLocation[0],
+      longtitude: data.longtitudeLocation[0]
     }
   });
 
   const endLocation = new Location({
-    address : data.locationTo,
+    address : data.location[1],
     coords:{
-      latitude: data.latitudeEndLocation,
-      longtitude: data.longtitudeEndLocation
+      latitude: data.latitudeLocation[1],
+      longtitude: data.longtitudeLocation[1]
+    }
+  });
+
+  const startProvince = new Location({
+    address : data.locationProvince[0],
+    coords:{
+      latitude: data.latitudeProvince[0],
+      longtitude: data.longtitudeProvince[0]
+    }
+  });
+
+  const endProvince = new Location({
+    address : data.locationProvince[1],
+    coords:{
+      latitude: data.latitudeProvince[1],
+      longtitude: data.longtitudeProvince[1]
     }
   });
   const vehicle = new Vehicle({
@@ -157,7 +186,9 @@ router.post("/vehicle/addvehicleandseatmap", async (req, res) => {
     totalSeats:data.totalSeats,
     licensePlates: data.licensePlates,
     startLocation: startLocation._id,
+    startProvince: startProvince._id,
     endLocation: endLocation._id,
+    endProvince: endProvince._id,
     agent: data.vehicleAgent
   });
 
@@ -186,6 +217,30 @@ router.post("/vehicle/addvehicleandseatmap", async (req, res) => {
     vehicle.endLocation = locationtocheck._id;
   }
 
+  var provinceFromCheck = await Location.findOne({
+    coords:{
+      latitude: startProvince.coords.latitude,
+      longtitude: startProvince.coords.longtitude
+    }
+  });
+  if(!provinceFromCheck){
+    startProvince.save();
+  }else{
+    vehicle.startProvince = provinceFromCheck._id;
+  }
+
+  var provinceToCheck = await Location.findOne({
+    coords:{
+      latitude: endProvince.coords.latitude,
+      longtitude: endProvince.coords.longtitude
+    }
+  });
+  if(!provinceToCheck){
+    endProvince.save();
+  }else{
+    vehicle.endProvince = provinceToCheck._id;
+  }
+
   let map = await Map.findOne({agent:data.vehicleAgent, type:data.vehicleType});
   let seatMap = req.body.seatMap;
   seatMap.forEach(item => {
@@ -199,7 +254,74 @@ router.post("/vehicle/addvehicleandseatmap", async (req, res) => {
     seat.save();
   });
 
-  vehicle.save();
+  await vehicle.save();
+
+  const startStation = new Station({
+    vehicle: vehicle._id,
+    stationStop : vehicle.startLocation,
+    province : vehicle.startProvince,
+  });
+
+  const endStation = new Station({
+    vehicle: vehicle._id,
+    stationStop : vehicle.endLocation,
+    province : vehicle.endProvince,
+  });
+
+  startStation.save();
+  endStation.save();
+
+  let length = data.locationAddStation.length;
+  for(let i = 0;i<length;i++){
+    const locationStationNew = new Location({
+      address : data.locationAddStation[i],
+      coords:{
+        latitude: data.latitudeLocationAddStation[i],
+        longtitude: data.longitudeLocationAddStation[i]
+      }
+    });
+  
+    const locationProvinceNew = new Location({
+      address : data.locationAddProvince[i],
+      coords:{
+        latitude: data.latitudeLocationAddProvince[i],
+        longtitude: data.longitudeLocationAddProvince[i]
+      }
+    });
+
+    const stationNew = new Station({
+      vehicle: vehicle._id,
+      stationStop : locationStationNew._id,
+      province : locationProvinceNew._id,
+    });
+
+    var stationNewCheck = await Location.findOne({
+      coords:{
+        latitude: locationStationNew.coords.latitude,
+        longtitude: locationStationNew.coords.longtitude
+      }
+    });
+    if(stationNewCheck){
+      stationNew.stationStop = stationNewCheck._id
+    }
+    else{
+      await locationStationNew.save();
+    }
+
+    var provinceNewCheck = await Location.findOne({
+      coords:{
+        latitude: locationProvinceNew.coords.latitude,
+        longtitude: locationProvinceNew.coords.longtitude
+      }
+    });
+    if(provinceNewCheck){
+      stationNew.province = provinceNewCheck._id
+    }
+    else{
+      await locationProvinceNew.save();
+    }
+    await stationNew.save();   
+  }
 
   res.status(200).json({
     message: "Data save changed successfully!",
