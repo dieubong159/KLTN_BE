@@ -5,6 +5,9 @@ const agentSchema = mongoose.Schema({
   cancelfee: {
     type: Number
   },
+  priceToDistance:{
+    type:Number
+  }
 });
 
 const agentDetailSchema = mongoose.Schema({
