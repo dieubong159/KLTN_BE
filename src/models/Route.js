@@ -29,6 +29,9 @@ const routeSchema = mongoose.Schema({
   },
   price: {
     type: Number,
+  },
+  isCorrectRoute:{
+    type: Boolean
   }
 });
 
@@ -44,10 +47,10 @@ const routeDetailSchema = mongoose.Schema({
   timeArrivingToStation:{
     type: Number
   },
-  orderRouteToStation:{
+  distanceToStation:{
     type:Number
   },
-  distanceToStation:{
+  orderRouteToStation:{
     type:Number
   }
 });

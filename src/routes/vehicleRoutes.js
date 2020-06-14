@@ -189,7 +189,8 @@ router.post("/vehicle/addvehicleandseatmap", async (req, res) => {
     startProvince: startProvince._id,
     endLocation: endLocation._id,
     endProvince: endProvince._id,
-    agent: data.vehicleAgent
+    agent: data.vehicleAgent,
+    isOnline : data.isOnline
   });
 
   var locationFromcheck = await Location.findOne({
@@ -260,12 +261,14 @@ router.post("/vehicle/addvehicleandseatmap", async (req, res) => {
     vehicle: vehicle._id,
     stationStop : vehicle.startLocation,
     province : vehicle.startProvince,
+    orderRouteToStation: data.orderToStation[0]
   });
 
   const endStation = new Station({
     vehicle: vehicle._id,
     stationStop : vehicle.endLocation,
     province : vehicle.endProvince,
+    orderRouteToStation: data.orderToStation[1]
   });
 
   startStation.save();
@@ -293,6 +296,7 @@ router.post("/vehicle/addvehicleandseatmap", async (req, res) => {
       vehicle: vehicle._id,
       stationStop : locationStationNew._id,
       province : locationProvinceNew._id,
+      orderRouteToStation: data.orderToAddStation[i]
     });
 
     var stationNewCheck = await Location.findOne({

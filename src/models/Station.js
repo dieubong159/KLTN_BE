@@ -13,6 +13,9 @@ const stationSchema = mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "Location",
   },
+  orderRouteToStation:{
+    type:Number
+  }
 });
 
 mongoose.model("Station", stationSchema);
