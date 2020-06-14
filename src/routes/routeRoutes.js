@@ -1,14 +1,22 @@
 const express = require("express");
 const mongoose = require("mongoose");
+const { route } = require("./vehicleRoutes");
 
 const Route = mongoose.model("Route");
 const RouteDetail = mongoose.model("RouteDetail");
 const RouteSchedule = mongoose.model("RouteSchedule");
 const RouteuDeparture = mongoose.model("RouteuDeparture");
 const Vehicle = mongoose.model("Vehicle");
-
+const Station = mongoose.model("Station");
 
 const router = express.Router();
+
+var groupBy = function(xs, key) {
+  return xs.reduce(function(rv, x) {
+    (rv[x[key]] = rv[x[key]] || []).push(x);
+    return rv;
+  }, {});
+};
 
 router.get("/route", async (req, res) => {
   const params = req.query;
@@ -46,6 +54,46 @@ router.get("/route", async (req, res) => {
       });
     res.status(200).send(routes);
   }
+});
+
+router.get('/find-routes', async (req, resp) => {
+  const params = req.query;
+  const routeData = {
+    startLocation: params.departureLocation,
+    endLocation: params.arriveLocation,
+    departureDate: params.departureDate,
+  };
+
+  let allRouteDetails = await RouteDetail.find().populate('station');
+  let routeDetailByStartLocs = allRouteDetails.filter(e => e.station.stationStop == routeData.startLocation || e.station.province == routeData.startLocation);
+  let routes = routeDetailByStartLocs.map(e => e.route);
+  let routeDetails = routes.flatMap(e => allRouteDetails.filter(i => i.route == e._id));
+  let routeDetailByEndLocs = routeDetails.filter(e => e.station.stationStop == routeData.endLocation || e.station.province == routeData.endLocation);
+  
+  routes = routeDetailByEndLocs.map(e => e.route);
+  routeDetails = routes.flatMap(e => allRouteDetails.filter(i => i.route == e._id));
+  let routeDetailGroups = groupBy(routeDetails, 'route');
+
+  let finalRouteDetails = [];
+  for (prop in routeDetailGroups) {
+    let start = routeDetailGroups[prop].find(e => e.station.stationStop == routeData.startLocation || e.station.province == routeData.startLocation);
+    let end = routeDetailGroups[prop].find(e => e.station.stationStop == routeData.endLocation || e.station.province == routeData.endLocation);
+
+    if (start.orderRouteToStation < end.orderRouteToStation) {
+      finalRouteDetails = finalRouteDetails.concat(routeDetailGroups[prop]);
+    }
+  }
+
+  routes = [...new Set(finalRouteDetails.map(e => e.route))];
+  let schedules = await RouteSchedule.find({ '$and': [ 
+    {'route': { '$in': routes} }, 
+    {'dayOfWeek': departureDate.getDay() } 
+  ]});
+
+  routes = schedules.map(e => e.route);
+  routes = await Route.find({ '_id': { '$in': routes } }).populate('');
+
+  resp.send(routes);
 });
 
 router.get("/route/:route_id", async (req, res) => {
