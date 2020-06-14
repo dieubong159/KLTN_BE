@@ -9,7 +9,6 @@ require("./models/Station");
 require("./models/SeatMap");
 require("./models/Vehicle");
 require("./models/Consts");
-const schedule = require("./helper/schedule");
 const express = require("express");
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
