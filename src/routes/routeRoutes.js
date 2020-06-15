@@ -1,5 +1,6 @@
 const express = require("express");
 const mongoose = require("mongoose");
+const moment = require('moment');
 const { route } = require("./vehicleRoutes");
 
 const Route = mongoose.model("Route");
@@ -8,6 +9,7 @@ const RouteSchedule = mongoose.model("RouteSchedule");
 const RouteuDeparture = mongoose.model("RouteuDeparture");
 const Vehicle = mongoose.model("Vehicle");
 const Station = mongoose.model("Station");
+const Agent = mongoose.model("Agent");
 
 const router = express.Router();
 
@@ -16,6 +18,12 @@ var groupBy = function(xs, key) {
     (rv[x[key]] = rv[x[key]] || []).push(x);
     return rv;
   }, {});
+};
+
+var byOrder = (a, b) => {
+  if (a.orderRouteToStation > b.orderRouteToStation) return 1;
+  if (a.orderRouteToStation < b.orderRouteToStation) return -1;
+  return 0;
 };
 
 router.get("/route", async (req, res) => {
@@ -65,14 +73,13 @@ router.get('/find-routes', async (req, resp) => {
   };
 
   let allRouteDetails = await RouteDetail.find().populate('station');
+  let allAgents = await Agent.find();
   let routeDetailByStartLocs = allRouteDetails.filter(e => e.station.stationStop == routeData.startLocation || e.station.province == routeData.startLocation);
   let routes = routeDetailByStartLocs.map(e => e.route);
-  console.log(routes);
-  let routeDetails = routes.flatMap(e => allRouteDetails.filter(i => i.route == e._id));
-  return resp.send(routeDetails);
+  let routeDetails = routes.flatMap(e => allRouteDetails.filter(i => i.route.toString() == e.toString()));
   let routeDetailByEndLocs = routeDetails.filter(e => e.station.stationStop == routeData.endLocation || e.station.province == routeData.endLocation);
   routes = routeDetailByEndLocs.map(e => e.route);
-  routeDetails = routes.flatMap(e => allRouteDetails.filter(i => i.route == e._id));
+  routeDetails = routes.flatMap(e => allRouteDetails.filter(i => i.route.toString() == e.toString()));
   let routeDetailGroups = groupBy(routeDetails, 'route');
 
   let finalRouteDetails = [];
@@ -85,16 +92,64 @@ router.get('/find-routes', async (req, resp) => {
     }
   }
 
-  routes = [...new Set(finalRouteDetails.map(e => e.route))];
+  routes = [...new Set(finalRouteDetails.map(e => e.route.toString()))];
   let schedules = await RouteSchedule.find({ '$and': [ 
     {'route': { '$in': routes} }, 
-    {'dayOfWeek': routeData.departureDate.getDay() } 
+    {'dayOfWeek': new Date(routeData.departureDate).getDay() } 
   ]});
 
   routes = schedules.map(e => e.route);
-  routes = await Route.find({ '_id': { '$in': routes } });
+  routes = await Route.find({ '_id': { '$in': routes } }).populate('vehicle');
 
-  resp.send(routes);
+  routeDetails = routes.flatMap(e => allRouteDetails.filter(i => i.route.toString() == e._id.toString()));
+  routeDetailGroups = groupBy(routeDetails, 'route');
+
+  dataFinal = []
+
+  for (prop in routeDetailGroups) {
+    let details = routeDetailGroups[prop];
+    
+    let start = details.find(e => e.station.stationStop == routeData.startLocation || e.station.province == routeData.startLocation);
+    let end = details.find(e => e.station.stationStop == routeData.endLocation || e.station.province == routeData.endLocation);
+
+    let ranges = details.filter(e => e.orderRouteToStation <= end.orderRouteToStation);
+    ranges.sort(byOrder);
+
+    let startTimeLength = 0, endTimeLength = 0;
+    let disStartLength = 0, disEndLength = 0;
+    for (let item of ranges) {
+      if (item.orderRouteToStation <= start.orderRouteToStation) {
+        startTimeLength += item.timeArrivingToStation;
+        disStartLength += item.distanceToStation;
+      }
+
+      if (item.orderRouteToStation <= end.orderRouteToStation) {
+        endTimeLength += item.timeArrivingToStation;
+        disEndLength += item.distanceToStation;
+      }
+    }
+
+    let route = routes.find(e => e._id.toString() == prop);
+    let startTime = route.startTime.split(':');
+
+    let startHour = moment('2020-06-16 00:00:00').add(parseInt(startTime[0]), 'hours').add(parseInt(startTime[1]), 'minutes').add(startTimeLength, 'hours');
+    let endHour = moment('2020-06-16 00:00:00').add(parseInt(startTime[0]), 'hours').add(parseInt(startTime[1]), 'minutes').add(endTimeLength, 'hours');
+
+    let vehicle = route.vehicle;
+    let pricePerKm = allAgents.find(e => e._id.toString() == vehicle.agent.toString()).priceToDistance;
+    dataFinal.push({
+      '_id': prop,
+      'vehicleId': vehicle._id.toString(),
+      'vehicleName': vehicle.name,
+      'startLocation': start.station.address,
+      'endLocation': end.station.address,
+      'startTime': startHour.format('HH:mm'),
+      'endTime': endHour.format('HH:mm'),
+      'price': (disEndLength - disStartLength) * pricePerKm
+    });
+  }
+
+  return resp.send(dataFinal);
 });
 
 router.get("/route/:route_id", async (req, res) => {
