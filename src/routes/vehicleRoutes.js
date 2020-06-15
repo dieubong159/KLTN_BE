@@ -148,7 +148,6 @@ router.delete("/vehicle/:vehicle_id", async (req, res) => {
 
 router.post("/vehicle/addvehicleandseatmap", async (req, res) => { 
   var data = req.body.vehicleData;
-  console.log(data);
   const startLocation = new Location({
     address : data.location[0],
     coords:{

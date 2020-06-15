@@ -67,9 +67,10 @@ router.get('/find-routes', async (req, resp) => {
   let allRouteDetails = await RouteDetail.find().populate('station');
   let routeDetailByStartLocs = allRouteDetails.filter(e => e.station.stationStop == routeData.startLocation || e.station.province == routeData.startLocation);
   let routes = routeDetailByStartLocs.map(e => e.route);
+  console.log(routes);
   let routeDetails = routes.flatMap(e => allRouteDetails.filter(i => i.route == e._id));
+  return resp.send(routeDetails);
   let routeDetailByEndLocs = routeDetails.filter(e => e.station.stationStop == routeData.endLocation || e.station.province == routeData.endLocation);
-  
   routes = routeDetailByEndLocs.map(e => e.route);
   routeDetails = routes.flatMap(e => allRouteDetails.filter(i => i.route == e._id));
   let routeDetailGroups = groupBy(routeDetails, 'route');
@@ -87,11 +88,11 @@ router.get('/find-routes', async (req, resp) => {
   routes = [...new Set(finalRouteDetails.map(e => e.route))];
   let schedules = await RouteSchedule.find({ '$and': [ 
     {'route': { '$in': routes} }, 
-    {'dayOfWeek': departureDate.getDay() } 
+    {'dayOfWeek': routeData.departureDate.getDay() } 
   ]});
 
   routes = schedules.map(e => e.route);
-  routes = await Route.find({ '_id': { '$in': routes } }).populate('');
+  routes = await Route.find({ '_id': { '$in': routes } });
 
   resp.send(routes);
 });
@@ -151,7 +152,6 @@ router.post("/route", async (req, res) => {
 
 router.post("/route/addRouteDetailAndRouteSchedule",async (req, res) => {
   const data = req.body;
-  console.log(data);
   const vehicle = await Vehicle.findById(data.vehicleId);
   if(!vehicle){
     return res.status(404);
