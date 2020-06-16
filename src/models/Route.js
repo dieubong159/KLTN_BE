@@ -65,7 +65,7 @@ const routeScheduleSchema = mongoose.Schema({
   },
 });
 
-const routeuDepartureSchema = mongoose.Schema({
+const routeDepartureSchema = mongoose.Schema({
   route: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Route",
@@ -82,4 +82,4 @@ const routeuDepartureSchema = mongoose.Schema({
 mongoose.model("Route", routeSchema);
 mongoose.model("RouteDetail", routeDetailSchema);
 mongoose.model("RouteSchedule", routeScheduleSchema);
-mongoose.model("RouteuDeparture", routeuDepartureSchema);
+mongoose.model("RouteDeparture", routeDepartureSchema);

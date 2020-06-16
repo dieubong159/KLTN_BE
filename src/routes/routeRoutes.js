@@ -6,10 +6,12 @@ const { route } = require("./vehicleRoutes");
 const Route = mongoose.model("Route");
 const RouteDetail = mongoose.model("RouteDetail");
 const RouteSchedule = mongoose.model("RouteSchedule");
-const RouteuDeparture = mongoose.model("RouteuDeparture");
+const RouteDeparture = mongoose.model("RouteDeparture");
 const Vehicle = mongoose.model("Vehicle");
 const Station = mongoose.model("Station");
 const Agent = mongoose.model("Agent");
+const Booking = mongoose.model("Booking");
+const Const = mongoose.model("Const");
 
 const router = express.Router();
 
@@ -104,8 +106,10 @@ router.get('/find-routes', async (req, resp) => {
   routeDetails = routes.flatMap(e => allRouteDetails.filter(i => i.route.toString() == e._id.toString()));
   routeDetailGroups = groupBy(routeDetails, 'route');
 
+  let departures = await RouteDeparture.find();
+  let allBookings = await Booking.find();
+  var seatStatusUnavailable = await Const.findOne({type:"trang_thai_ghe", value: "da_dat"});
   dataFinal = []
-
   for (prop in routeDetailGroups) {
     let details = routeDetailGroups[prop];
     
@@ -131,22 +135,54 @@ router.get('/find-routes', async (req, resp) => {
 
     let route = routes.find(e => e._id.toString() == prop);
     let startTime = route.startTime.split(':');
+    let today = new Date();
+    let dateToday = today.getDate(), monthToday = today.getMonth() + 1, yearToday = today.getFullYear();
 
-    let startHour = moment('2020-06-16 00:00:00').add(parseInt(startTime[0]), 'hours').add(parseInt(startTime[1]), 'minutes').add(startTimeLength, 'hours');
-    let endHour = moment('2020-06-16 00:00:00').add(parseInt(startTime[0]), 'hours').add(parseInt(startTime[1]), 'minutes').add(endTimeLength, 'hours');
+    let startHour = moment(`${yearToday}-${monthToday}-${dateToday} 00:00:00`).add(parseInt(startTime[0]), 'hours').add(parseInt(startTime[1]), 'minutes').add(startTimeLength, 'hours');
+    let endHour = moment(`${yearToday}-${monthToday}-${dateToday} 00:00:00`).add(parseInt(startTime[0]), 'hours').add(parseInt(startTime[1]), 'minutes').add(endTimeLength, 'hours');
 
     let vehicle = route.vehicle;
     let pricePerKm = allAgents.find(e => e._id.toString() == vehicle.agent.toString()).priceToDistance;
-    dataFinal.push({
-      '_id': prop,
-      'vehicleId': vehicle._id.toString(),
-      'vehicleName': vehicle.name,
-      'startLocation': start.station.address,
-      'endLocation': end.station.address,
-      'startTime': startHour.format('HH:mm'),
-      'endTime': endHour.format('HH:mm'),
-      'price': (disEndLength - disStartLength) * pricePerKm
-    });
+
+    let selectedDate = new Date(routeData.departureDate);
+    let date = selectedDate.getDate();
+    let month = selectedDate.getMonth();
+    let year = selectedDate.getFullYear();
+
+    let departure = departures.find(e => e.route.toString() == prop && date == e.departureDate.getDate() && month == e.departureDate.getMonth() && year == departureDate.getFullYear());
+    let totalSeats = vehicle.totalSeats;
+    let depId = null, emptySeats = totalSeats;
+    if (departure) {
+      depId = departure._id.toString();
+      let bookedSeats = allBookings.find(e => e.routeuDeparture.toString() == departure._id.toString() && e.seatStatus.toString() == seatStatusUnavailable._id.toString()).length;
+      emptySeats = totalSeats - bookedSeats;
+    }
+    
+    let valid = true;
+    if (dateToday == date && monthToday == month && yearToday == year) {
+      let hourToday = today.getHours();
+      let minuteToday = today.getMinutes();
+
+      let temp = moment(`${yearToday}-${monthToday}-${dateToday} ${hourToday}:${minuteToday}:00`).add(3, 'hours');
+      if (!temp.isBefore(startHour)) {
+          valid = false;
+      }
+    }
+
+    if (valid) {
+      dataFinal.push({
+        '_id': prop,
+        'vehicleId': vehicle._id.toString(),
+        'vehicleName': vehicle.name,
+        'startLocation': start.station.address,
+        'endLocation': end.station.address,
+        'startTime': startHour.format('HH:mm'),
+        'endTime': endHour.format('HH:mm'),
+        'price': (disEndLength - disStartLength) * pricePerKm,
+        'departureId': depId,
+        'emptySeats': emptySeats
+      });
+    }
   }
 
   return resp.send(dataFinal);
