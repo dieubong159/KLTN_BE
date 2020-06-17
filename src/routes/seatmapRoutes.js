@@ -9,32 +9,35 @@ const Agent = mongoose.model("Agent");
 const Route = mongoose.model("Route");
 const Booking = mongoose.model("Booking");
 
-router.get("/seatmap/:route_id", async (req, res) => {
-  var routeSelect = await Route.findById(req.params.route_id).populate(
-    "vehicle"
-  );
+router.get("/seatmap", async (req, res) => {
+  const params = req.query;
+  const data = {
+    vehicleId: params.vehicleId,
+    departureId: params.departureId
+  };
 
-  var querySeatMap = { vehicle: routeSelect.vehicle._id };
+  var querySeatMap = { vehicle: data.vehicleId };
   var seatmap = await SeatMap.find(querySeatMap).populate({
     path: "mapDetail",
     model: "Map",
     populate: { path: "type orderType" },
   });
 
-  var querybooking = { route: req.params.route_id };
+  var querybooking = { routeuDeparture: data.departureId};
   var booking = await Booking.find(querybooking).populate("seatStatus");
 
   let seatMapStatus = seatmap.map((seat) => {
     if (seat.seatNumber) {
       let seatState = { seatStatus: "trong", displayStatus: "Ghế trống" };
-      let book = booking.find((e) => e.seatNumber == seat.seatNumber);
-      if (book) {
-        seatState = {
-          seatStatus: book.seatStatus.value,
-          displayStatus: book.seatStatus.displayValue,
-        };
+      if(booking){
+        let book = booking.find((e) => e.seatNumber == seat.seatNumber);
+        if (book) {
+          seatState = {
+            seatStatus: book.seatStatus.value,
+            displayStatus: book.seatStatus.displayValue,
+          };
+        }
       }
-
       return {
         index: seat.index,
         seatNumber: seat.seatNumber,
@@ -51,7 +54,6 @@ router.get("/seatmap/:route_id", async (req, res) => {
 
   return res.send({
     data: {
-      totalSeats : routeSelect.vehicle.totalSeats,
       map: {
         width: seatmap[0].mapDetail.width,
         height: seatmap[0].mapDetail.height,

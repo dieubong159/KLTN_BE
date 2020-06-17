@@ -109,7 +109,7 @@ router.get('/find-routes', async (req, resp) => {
   let departures = await RouteDeparture.find();
   let allBookings = await Booking.find();
   var seatStatusUnavailable = await Const.findOne({type:"trang_thai_ghe", value: "da_dat"});
-  dataFinal = []
+  let dataFinal = []
   for (prop in routeDetailGroups) {
     let details = routeDetailGroups[prop];
     
@@ -136,19 +136,19 @@ router.get('/find-routes', async (req, resp) => {
     let route = routes.find(e => e._id.toString() == prop);
     let startTime = route.startTime.split(':');
     let today = new Date();
-    let dateToday = today.getDate(), monthToday = today.getMonth() + 1, yearToday = today.getFullYear();
+    let dateToday = today.getDate(), monthToday = today.getMonth()+1, yearToday = today.getFullYear();
 
-    let startHour = moment(`${yearToday}-${monthToday}-${dateToday} 00:00:00`).add(parseInt(startTime[0]), 'hours').add(parseInt(startTime[1]), 'minutes').add(startTimeLength, 'hours');
-    let endHour = moment(`${yearToday}-${monthToday}-${dateToday} 00:00:00`).add(parseInt(startTime[0]), 'hours').add(parseInt(startTime[1]), 'minutes').add(endTimeLength, 'hours');
+    let startHour = moment(`${yearToday}-${monthToday}-${dateToday} 00:00:00`,"YYYY-MM-DD HH:mm:ss").add(parseInt(startTime[0]), 'hours').add(parseInt(startTime[1]), 'minutes').add(startTimeLength, 'hours');
+    let endHour = moment(`${yearToday}-${monthToday}-${dateToday} 00:00:00`,"YYYY-MM-DD HH:mm:ss").add(parseInt(startTime[0]), 'hours').add(parseInt(startTime[1]), 'minutes').add(endTimeLength, 'hours');
 
     let vehicle = route.vehicle;
     let pricePerKm = allAgents.find(e => e._id.toString() == vehicle.agent.toString()).priceToDistance;
 
     let selectedDate = new Date(routeData.departureDate);
     let date = selectedDate.getDate();
-    let month = selectedDate.getMonth();
+    let month = selectedDate.getMonth()+1;
     let year = selectedDate.getFullYear();
-
+    
     let departure = departures.find(e => e.route.toString() == prop && date == e.departureDate.getDate() && month == e.departureDate.getMonth() && year == departureDate.getFullYear());
     let totalSeats = vehicle.totalSeats;
     let depId = null, emptySeats = totalSeats;
@@ -160,15 +160,16 @@ router.get('/find-routes', async (req, resp) => {
     
     let valid = true;
     if (dateToday == date && monthToday == month && yearToday == year) {
-      let hourToday = today.getHours();
+      let hourToday = today.getHours();     
+      hourToday = 3;
       let minuteToday = today.getMinutes();
-
-      let temp = moment(`${yearToday}-${monthToday}-${dateToday} ${hourToday}:${minuteToday}:00`).add(3, 'hours');
-      if (!temp.isBefore(startHour)) {
+      let temp = moment(`${yearToday}-${monthToday}-${dateToday} ${hourToday}:${minuteToday}:00`,"YYYY-MM-DD HH:mm:ss").add(0.5, 'hours');
+      console.log("temp",temp.hours());
+      console.log("startHour",startHour.hours());
+      if (!temp.isBefore(startHour,'hours')) {
           valid = false;
       }
     }
-
     if (valid) {
       dataFinal.push({
         '_id': prop,

@@ -3,6 +3,8 @@ const mongoose = require("mongoose");
 
 const Booking = mongoose.model("Booking");
 const Route = mongoose.model("Route");
+const RouteDeparture = mongoose.model("RouteDeparture");
+const RouteSchedule = mongoose.model("RouteSchedule");
 const Const = mongoose.model("Const");
 
 const router = express.Router();
@@ -13,12 +15,29 @@ router.get("/booking", async (req, res) => {
 });
 
 router.post("/booking", async (req, res, next) => {
-  const booking = new Booking(req.body);
+  const data = req.body;
+  const booking = new Booking({
+    routeuDeparture : data.routeuDeparture,
+    seatNumber: data.seatNumber,
+    price : data.price
+  });
+
+  if(!data.routeuDeparture){
+    let departureDate = new Date(data.departureDate);
+    let routeSchedule = RouteSchedule.findOne({route: data.route,dayOfWeek: departureDate.getDay()});
+    const routeuDeparture = new RouteDeparture({
+      route: data.route,
+      routeSchedule:routeSchedule._id,
+      departureDate : departureDate
+    });
+    routeuDeparture.save();
+    booking.routeuDeparture = routeuDeparture._id;
+  }
 
   var validroute = mongoose.Types.ObjectId.isValid(booking.route);
 
   if (validroute) {
-    const routeExist = await Route.exists({ _id: booking.route });
+    const routeExist = await RouteDeparture.exists({ _id: booking.routeuDeparture });
     if (!routeExist) {
       return res.status(500).json({
         error: "Route not exist",
