@@ -80,6 +80,70 @@ router.get('/find-routes', async (req, resp) => {
   let routes = routeDetailByStartLocs.map(e => e.route);
   let routeDetails = routes.flatMap(e => allRouteDetails.filter(i => i.route.toString() == e.toString()));
   let routeDetailByEndLocs = routeDetails.filter(e => e.station.stationStop == routeData.endLocation || e.station.province == routeData.endLocation);
+  if (!routeDetailByEndLocs) {
+    let condition = e => e.station.stationStop == routeData.startLocation || 
+                         e.station.province == routeData.startLocation ||
+                         e.station.stationStop == routeData.endLocation || 
+                         e.station.province == routeData.endLocation;
+
+    let stationByRouteDetails = allRouteDetails.filter(condition);
+    let flatStations = [];
+    for (let stationDetail of stationByRouteDetails) {
+      if (flatStations.find(e => e.station.stationStop == stationDetail.station.stationStop)) {
+        continue;
+      }
+
+      flatStations.push(stationDetail);
+    }
+
+    let graphStations = new Array(flatStations.length);
+    for (let i in graphStations) {
+      graphStations[i] = new Array(flatStations.length);
+    }
+    
+    let groupRoutes = groupBy(stationByRouteDetails, 'route');
+    for (let i in flatStations) {
+      for (let j in flatStations) {
+        let subRoutes = [];
+        // Check adjacent
+        for (prop in groupRoutes) {
+          let from = groupRoutes[prop].find(e => 
+            e.station.stationStop == flatStations[i].station.stationStop || 
+            e.station.province == flatStations[i].station.province)
+          
+          if (!from) {
+            continue;
+          }
+          
+          let to = groupRoutes[prop].find(e => 
+            e.station.stationStop == flatStations[j].station.stationStop || 
+            e.station.province == flatStations[j].station.province)
+          
+          if (!to) {
+            continue;
+          }
+
+          let check = Math.abs(from.orderRouteToStation - to.orderRouteToStation);
+          if (check == 1 || check == 0) {
+            subRoutes.push({
+              from: from,
+              to: to,
+              time: to.timeArrivingToStation,
+              distance: to.distanceToStation
+            });
+          }
+        }
+
+        graphStations[i][j] = { 
+          isAdjacent: subRoutes.length > 0, 
+          subRoutes: subRoutes
+        };
+      }
+    }
+
+    return resp.send(graphStations);
+  }
+
   routes = routeDetailByEndLocs.map(e => e.route);
   routeDetails = routes.flatMap(e => allRouteDetails.filter(i => i.route.toString() == e.toString()));
   let routeDetailGroups = groupBy(routeDetails, 'route');
