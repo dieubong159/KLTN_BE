@@ -23,8 +23,11 @@ router.get("/seatmap", async (req, res) => {
     populate: { path: "type orderType" },
   });
 
-  var querybooking = { routeuDeparture: data.departureId};
-  var booking = await Booking.find(querybooking).populate("seatStatus");
+  if(data.departureId){
+    var querybooking = { routeuDeparture: data.departureId};
+    var booking = await Booking.find(querybooking).populate("seatStatus");
+  }
+  
 
   let seatMapStatus = seatmap.map((seat) => {
     if (seat.seatNumber) {

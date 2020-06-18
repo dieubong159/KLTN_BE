@@ -160,16 +160,14 @@ router.get('/find-routes', async (req, resp) => {
     
     let valid = true;
     if (dateToday == date && monthToday == month && yearToday == year) {
-      let hourToday = today.getHours();     
-      hourToday = 3;
+      let hourToday = today.getHours();
       let minuteToday = today.getMinutes();
-      let temp = moment(`${yearToday}-${monthToday}-${dateToday} ${hourToday}:${minuteToday}:00`,"YYYY-MM-DD HH:mm:ss").add(0.5, 'hours');
-      console.log("temp",temp.hours());
-      console.log("startHour",startHour.hours());
+      let temp = moment(`${yearToday}-${monthToday}-${dateToday} ${hourToday}:${minuteToday}:00`,"YYYY-MM-DD HH:mm:ss").add(2, 'hours');
       if (!temp.isBefore(startHour,'hours')) {
           valid = false;
       }
     }
+
     if (valid) {
       dataFinal.push({
         '_id': prop,
