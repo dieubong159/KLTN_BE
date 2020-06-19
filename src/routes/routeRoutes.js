@@ -80,7 +80,8 @@ router.get('/find-routes', async (req, resp) => {
   let routes = routeDetailByStartLocs.map(e => e.route);
   let routeDetails = routes.flatMap(e => allRouteDetails.filter(i => i.route.toString() == e.toString()));
   let routeDetailByEndLocs = routeDetails.filter(e => e.station.stationStop == routeData.endLocation || e.station.province == routeData.endLocation);
-  if (!routeDetailByEndLocs) {
+  if (routeDetailByEndLocs.length==0) {
+    console.log("ádasdasd");
     let condition = e => e.station.stationStop == routeData.startLocation || 
                          e.station.province == routeData.startLocation ||
                          e.station.stationStop == routeData.endLocation || 
