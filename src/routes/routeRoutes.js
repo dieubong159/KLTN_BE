@@ -16,8 +16,8 @@ const Const = mongoose.model("Const");
 
 const router = express.Router();
 
-var groupBy = function(xs, key) {
-  return xs.reduce(function(rv, x) {
+var groupBy = function (xs, key) {
+  return xs.reduce(function (rv, x) {
     (rv[x[key]] = rv[x[key]] || []).push(x);
     return rv;
   }, {});
@@ -82,10 +82,10 @@ router.get('/find-routes', async (req, resp) => {
   let routeDetails = routes.flatMap(e => allRouteDetails.filter(i => i.route.toString() == e.toString()));
   let routeDetailByEndLocs = routeDetails.filter(e => e.station.stationStop == routeData.endLocation || e.station.province == routeData.endLocation);
   if (routeDetailByEndLocs.length == 0) {
-    let condition = e => e.station.stationStop == routeData.startLocation || 
-                         e.station.province == routeData.startLocation ||
-                         e.station.stationStop == routeData.endLocation || 
-                         e.station.province == routeData.endLocation;
+    let condition = e => e.station.stationStop == routeData.startLocation ||
+      e.station.province == routeData.startLocation ||
+      e.station.stationStop == routeData.endLocation ||
+      e.station.province == routeData.endLocation;
 
     let stationByRouteDetails = allRouteDetails.filter(condition);
 
@@ -100,45 +100,73 @@ router.get('/find-routes', async (req, resp) => {
 
       flatStations.push(stationDetail);
     }
-    
+
+    let groupRoutes = groupBy(stationByRouteDetails, 'route');
+    let findIndexOfStation = routeDetail => {
+      return flatStations.findIndex(e => e.station.stationStop.toString() == routeDetail.station.stationStop.toString())
+    };
+
     let graphStations = new Array(flatStations.length);
     for (let i = 0; i < graphStations.length; i++) {
-      graphStations[i] = new Array(flatStations.length);
+      graphStations[i] = new Array(flatStations.length).fill({ 
+        isAdjacent: false,
+        subRoutes: null,
+        byRoutes: null
+      });
     }
-    
-    let groupRoutes = groupBy(stationByRouteDetails, 'route');
-    for (let i = 0; i < flatStations.length; i++) {
-      for (let j = 0; j < flatStations.length; j++) {
-        let subRoutes = [];
-        // Check adjacent
-        for (prop in groupRoutes) {
-          let from = groupRoutes[prop].find(e => e.station.stationStop.toString() == flatStations[i].station.stationStop.toString())
-          if (!from) {
-            continue;
-          }
-          
-          let to = groupRoutes[prop].find(e => e.station.stationStop.toString() == flatStations[j].station.stationStop.toString())
-          if (!to) {
-            continue;
-          }
 
-          let check = to.orderRouteToStation - from.orderRouteToStation;
-          if (to.orderRouteToStation >= from.orderRouteToStation && check == 1) {
-            subRoutes.push({
-              from: from,
-              to: to,
-              time: to.timeArrivingToStation,
-              distance: to.distanceToStation
-            });
+    for (prop in groupRoutes) {
+      let routeStations = groupRoutes[prop];
+      for (let i = 0; i < routeStations.length - 1; i++) {
+        let x = findIndexOfStation(routeStations[i]);
+        for (let j = i + 1; j < routeStations.length; j++) {
+          let y = findIndexOfStation(routeStations[j]);
+          if (graphStations[x][y].isAdjacent) {
+            graphStations[x][y].subRoutes.push(routeStations.slice(i, j));
+            graphStations[x][y].byRoutes.push(prop);
+          } else {
+            graphStations[x][y] = {
+              isAdjacent: true,
+              subRoutes: routeStations.slice(i, j),
+              byRoutes: [prop]
+            };
           }
         }
-
-        graphStations[i][j] = {
-          isAdjacent: subRoutes.length > 0, 
-          subRoutes: subRoutes
-        };
       }
     }
+
+    // for (let i = 0; i < flatStations.length; i++) {
+    //   let subRoutes = [];
+    //   // Check adjacent
+    //   for (prop in groupRoutes) {
+    //     /*let from = groupRoutes[prop].find(e => e.station.stationStop.toString() == flatStations[i].station.stationStop.toString())
+    //     if (!from) {
+    //       continue;
+    //     }
+        
+    //     let to = groupRoutes[prop].find(e => e.station.stationStop.toString() == flatStations[j].station.stationStop.toString())
+    //     if (!to) {
+    //       continue;
+    //     }
+
+    //     let check = to.orderRouteToStation - from.orderRouteToStation;
+    //     if (to.orderRouteToStation >= from.orderRouteToStation && check == 1) {
+    //       subRoutes.push({
+    //         from: from,
+    //         to: to,
+    //         time: to.timeArrivingToStation,
+    //         distance: to.distanceToStation
+    //       });
+    //     }*/
+        
+
+    //   }
+
+    //   graphStations[i][j] = {
+    //     isAdjacent: subRoutes.length > 0,
+    //     subRoutes: subRoutes
+    //   };
+    // }
 
     let findRoutes = (u, d, visited, paths, pathIndex) => {
       visited[u] = true;
@@ -165,38 +193,22 @@ router.get('/find-routes', async (req, resp) => {
 
     let startIndex = flatStations.findIndex(e => e.station.stationStop.toString() == routeData.startLocation || e.station.province.toString() == routeData.startLocation);
     let endIndex = flatStations.findIndex(e => e.station.stationStop.toString() == routeData.endLocation || e.station.province.toString() == routeData.endLocation);
-    
+
     let foundRoutes = [];
     findRoutes(startIndex, endIndex, visited, paths, pathIndex);
 
     let allRouteStations = [];
     // let temp = [];
     for (let foundRoute of foundRoutes) {
-      let routeStations = foundRoute.map(e => flatStations[e]);
-      let duplicateRoute = false;
-      for (let i = 0; i < routeStations.length - 1; i++) {
-        let subRoutes = graphStations[foundRoute[i]][foundRoute[i + 1]].subRoutes;
-        if (subRoutes.length > 1) {
-          let subRouteStations = subRoutes.map(e => routeStations.slice(0, i).concat([e.from, e.to]).concat(routeStations.slice(i + 2)));
-          subRouteStations.forEach(e => allRouteStations.push(e));
-          
-          // for (let x = 0; x < subRoutes.length; x++) {
-          //   let t1 = foundRoute.slice(0, i).concat([i, i + 1]).concat(foundRoute.slice(i + 2));
-          //   temp.push(t1);
-          // }
-
-          duplicateRoute = true;
-        }
-      }
-
-      if (!duplicateRoute) {
-        allRouteStations.push(routeStations);
-      }
+      allRouteStations.push({
+        routeIndex: foundRoute,
+        details: foundRoute.map(e => flatStations[e])
+      });
     }
 
     // let x = allRouteStations.map(e => [...new Set(e.map(i => i.route.toString()))]);
-    let filterRoutes = allRouteStations.filter(e => [...new Set(e.map(i => i.route.toString()))].length <= 4);
-    return resp.send(filterRoutes);
+    //let filterRoutes = allRouteStations.filter(e => [...new Set(e.map(i => i.route.toString()))].length <= 4);
+    return resp.send(allRouteStations);
   }
 
   routes = routeDetailByEndLocs.map(e => e.route);
@@ -214,10 +226,12 @@ router.get('/find-routes', async (req, resp) => {
   }
 
   routes = [...new Set(finalRouteDetails.map(e => e.route.toString()))];
-  let schedules = await RouteSchedule.find({ '$and': [ 
-    {'route': { '$in': routes} }, 
-    {'dayOfWeek': new Date(routeData.departureDate).getDay() } 
-  ]});
+  let schedules = await RouteSchedule.find({
+    '$and': [
+      { 'route': { '$in': routes } },
+      { 'dayOfWeek': new Date(routeData.departureDate).getDay() }
+    ]
+  });
 
   routes = schedules.map(e => e.route);
   routes = await Route.find({ '_id': { '$in': routes } }).populate('vehicle');
@@ -227,11 +241,11 @@ router.get('/find-routes', async (req, resp) => {
 
   let departures = await RouteDeparture.find();
   let allBookings = await Booking.find();
-  var seatStatusUnavailable = await Const.findOne({type:"trang_thai_ghe", value: "da_dat"});
+  var seatStatusUnavailable = await Const.findOne({ type: "trang_thai_ghe", value: "da_dat" });
   let dataFinal = []
   for (prop in routeDetailGroups) {
     let details = routeDetailGroups[prop];
-    
+
     let start = details.find(e => e.station.stationStop == routeData.startLocation || e.station.province == routeData.startLocation);
     let end = details.find(e => e.station.stationStop == routeData.endLocation || e.station.province == routeData.endLocation);
 
@@ -255,19 +269,19 @@ router.get('/find-routes', async (req, resp) => {
     let route = routes.find(e => e._id.toString() == prop);
     let startTime = route.startTime.split(':');
     let today = new Date();
-    let dateToday = today.getDate(), monthToday = today.getMonth()+1, yearToday = today.getFullYear();
+    let dateToday = today.getDate(), monthToday = today.getMonth() + 1, yearToday = today.getFullYear();
 
-    let startHour = moment(`${yearToday}-${monthToday}-${dateToday} 00:00:00`,"YYYY-MM-DD HH:mm:ss").add(parseInt(startTime[0]), 'hours').add(parseInt(startTime[1]), 'minutes').add(startTimeLength, 'hours');
-    let endHour = moment(`${yearToday}-${monthToday}-${dateToday} 00:00:00`,"YYYY-MM-DD HH:mm:ss").add(parseInt(startTime[0]), 'hours').add(parseInt(startTime[1]), 'minutes').add(endTimeLength, 'hours');
+    let startHour = moment(`${yearToday}-${monthToday}-${dateToday} 00:00:00`, "YYYY-MM-DD HH:mm:ss").add(parseInt(startTime[0]), 'hours').add(parseInt(startTime[1]), 'minutes').add(startTimeLength, 'hours');
+    let endHour = moment(`${yearToday}-${monthToday}-${dateToday} 00:00:00`, "YYYY-MM-DD HH:mm:ss").add(parseInt(startTime[0]), 'hours').add(parseInt(startTime[1]), 'minutes').add(endTimeLength, 'hours');
 
     let vehicle = route.vehicle;
     let pricePerKm = allAgents.find(e => e._id.toString() == vehicle.agent.toString()).priceToDistance;
 
     let selectedDate = new Date(routeData.departureDate);
     let date = selectedDate.getDate();
-    let month = selectedDate.getMonth()+1;
+    let month = selectedDate.getMonth() + 1;
     let year = selectedDate.getFullYear();
-    
+
     let departure = departures.find(e => e.route.toString() == prop && date == e.departureDate.getDate() && month == e.departureDate.getMonth() && year == departureDate.getFullYear());
     let totalSeats = vehicle.totalSeats;
     let depId = null, emptySeats = totalSeats;
@@ -276,14 +290,14 @@ router.get('/find-routes', async (req, resp) => {
       let bookedSeats = allBookings.find(e => e.routeuDeparture.toString() == departure._id.toString() && e.seatStatus.toString() == seatStatusUnavailable._id.toString()).length;
       emptySeats = totalSeats - bookedSeats;
     }
-    
+
     let valid = true;
     if (dateToday == date && monthToday == month && yearToday == year) {
       let hourToday = today.getHours();
       let minuteToday = today.getMinutes();
-      let temp = moment(`${yearToday}-${monthToday}-${dateToday} ${hourToday}:${minuteToday}:00`,"YYYY-MM-DD HH:mm:ss").add(2, 'hours');
-      if (!temp.isBefore(startHour,'hours')) {
-          valid = false;
+      let temp = moment(`${yearToday}-${monthToday}-${dateToday} ${hourToday}:${minuteToday}:00`, "YYYY-MM-DD HH:mm:ss").add(2, 'hours');
+      if (!temp.isBefore(startHour, 'hours')) {
+        valid = false;
       }
     }
 
@@ -316,7 +330,7 @@ router.get("/route/:route_id", async (req, res) => {
       populate: {
         path: "agent",
       },
-    })    
+    })
     .populate({
       path: "vehicle",
       model: "Vehicle",
@@ -359,10 +373,10 @@ router.post("/route", async (req, res) => {
   }
 });
 
-router.post("/route/addRouteDetailAndRouteSchedule",async (req, res) => {
+router.post("/route/addRouteDetailAndRouteSchedule", async (req, res) => {
   const data = req.body;
   const vehicle = await Vehicle.findById(data.vehicleId);
-  if(!vehicle){
+  if (!vehicle) {
     return res.status(404);
   }
   const route = new Route({
@@ -374,27 +388,27 @@ router.post("/route/addRouteDetailAndRouteSchedule",async (req, res) => {
     endLocation: vehicle.endLocation,
     endProvince: vehicle.endProvince,
     price: data.price,
-    isCorrectRoute : data.isCorrectRoute
+    isCorrectRoute: data.isCorrectRoute
   });
 
   await route.save();
 
   let length = data.stationId.length;
-  for(let i = 0;i<length;i++){
+  for (let i = 0; i < length; i++) {
     const routeDetail = new RouteDetail({
       route: route._id,
-      station : data.stationId[i],
+      station: data.stationId[i],
       timeArrivingToStation: data.stationTime[i],
-      distanceToStation : data.stationDistance[i],
-      orderRouteToStation : data.orderStation[i]
+      distanceToStation: data.stationDistance[i],
+      orderRouteToStation: data.orderStation[i]
     });
     await routeDetail.save();
   }
 
   let lenghtDay = data.day.length;
-  for(let i = 0;i<lenghtDay;i++){
+  for (let i = 0; i < lenghtDay; i++) {
     const routeSchedule = new RouteSchedule({
-      route : route._id,
+      route: route._id,
       dayOfWeek: data.day[i]
     });
     await routeSchedule.save();
