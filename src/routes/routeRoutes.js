@@ -135,39 +135,6 @@ router.get('/find-routes', async (req, resp) => {
       }
     }
 
-    // for (let i = 0; i < flatStations.length; i++) {
-    //   let subRoutes = [];
-    //   // Check adjacent
-    //   for (prop in groupRoutes) {
-    //     /*let from = groupRoutes[prop].find(e => e.station.stationStop.toString() == flatStations[i].station.stationStop.toString())
-    //     if (!from) {
-    //       continue;
-    //     }
-        
-    //     let to = groupRoutes[prop].find(e => e.station.stationStop.toString() == flatStations[j].station.stationStop.toString())
-    //     if (!to) {
-    //       continue;
-    //     }
-
-    //     let check = to.orderRouteToStation - from.orderRouteToStation;
-    //     if (to.orderRouteToStation >= from.orderRouteToStation && check == 1) {
-    //       subRoutes.push({
-    //         from: from,
-    //         to: to,
-    //         time: to.timeArrivingToStation,
-    //         distance: to.distanceToStation
-    //       });
-    //     }*/
-        
-
-    //   }
-
-    //   graphStations[i][j] = {
-    //     isAdjacent: subRoutes.length > 0,
-    //     subRoutes: subRoutes
-    //   };
-    // }
-
     let findRoutes = (u, d, visited, paths, pathIndex) => {
       visited[u] = true;
       paths[pathIndex] = u;
@@ -197,18 +164,102 @@ router.get('/find-routes', async (req, resp) => {
     let foundRoutes = [];
     findRoutes(startIndex, endIndex, visited, paths, pathIndex);
 
-    let allRouteStations = [];
-    // let temp = [];
     for (let foundRoute of foundRoutes) {
-      allRouteStations.push({
-        routeIndex: foundRoute,
-        details: foundRoute.map(e => flatStations[e])
-      });
+      let labels = [];
+      for (let i = 0; i < foundRoute.length - 1; i++) {
+
+        labels.push({ 
+          x: foundRoute[i], 
+          y: foundRoute[i + 1], 
+          data: graphStations[foundRoute[i]][foundRoute[i + 1]].byRoutes 
+        });
+      }
+
+      let n = labels.flatMap(e => e.data).length;
+      let subGraph = new Array(n);
+      for (let i = 0; i < n; i++) {
+        subGraph[i] = new Array(n).fill({
+          isAdjacent: false,
+          from: null,
+          to: null
+        });
+      }
+
+      let dataLabels = labels.map(e => e.data);
+      let flatLabels = [];
+      for (let i = 0; i < dataLabels.length; i++) {
+        for (let j = 0; j < dataLabels[i].length; j++) {
+          flatLabels.push(`${i}-${dataLabels[i][j]}`);
+        }
+      }
+
+      for (let i = 0; i < n; i++) {
+        let currentLabel = flatLabels[i];
+        let groupNumber = parseInt(currentLabel.split('-')[0]);
+        let nextGroupNumber = groupNumber + 1;
+        for (let j = 0; j < n; j++) {
+          if (flatLabels[j].startsWith(nextGroupNumber + '-')) {
+            subGraph[i][j] = {
+              isAdjacent: true,
+              from: flatLabels[i],
+              to: flatLabels[j]
+            };
+          }
+        }
+      }
+
+      let findSubRoutes = (u, d, visited, paths, pathIndex) => {
+        visited[u] = true;
+        paths[pathIndex] = u;
+        pathIndex++;
+  
+        if (u == d) {
+          currentSubRoutes.push(paths.slice(0, pathIndex));
+        } else {
+          for (let i = 0; i < flatLabels.length; i++) {
+            if (subGraph[u][i].isAdjacent && !visited[i]) {
+              findSubRoutes(i, d, visited, paths, pathIndex);
+            }
+          }
+        }
+  
+        pathIndex--;
+        visited[u] = false;
+      };
+
+      let foundSubRoutes = [];
+      let currentSubRoutes = [];
+      for (let i = 0; i < flatLabels.length; i++) {
+        if (flatLabels[i].startsWith('0-')) {
+          for (let j = flatLabels.length - 1; j >= 0; j--) {
+            if (flatLabels[j].startsWith(`${dataLabels.length - 1}-`)) {
+              visited = new Array(flatLabels.length).fill(false);
+              paths = new Array(flatLabels.length).fill(0);
+              currentSubRoutes = [];
+              findSubRoutes(i, j, visited, paths, 0);
+              currentSubRoutes.forEach(e => foundSubRoutes.push(e));
+            }
+          }
+        }
+      }
+
+      let mapRoutes = foundSubRoutes.map(e => [...e.map(i => flatLabels[i].split('-')[1])]);
+      let detailRoutes = [];
+      for (let i = 0; i < mapRoutes.length; i++) {
+        let temp = [];
+        for (let j = 0; j <= mapRoutes[i].length; j++) {
+          temp.push({
+            routeId: mapRoutes[i][j],
+            stationStopId: flatStations[foundRoute[j]].station.stationStop
+          });
+        }
+        detailRoutes.push(temp);
+      }
+
+      return resp.send(detailRoutes);
     }
 
-    // let x = allRouteStations.map(e => [...new Set(e.map(i => i.route.toString()))]);
-    //let filterRoutes = allRouteStations.filter(e => [...new Set(e.map(i => i.route.toString()))].length <= 4);
-    return resp.send(allRouteStations);
+    return resp.send(foundRoutes);
   }
 
   routes = routeDetailByEndLocs.map(e => e.route);
