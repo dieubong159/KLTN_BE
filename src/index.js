@@ -45,7 +45,7 @@ app.use(routeRoutes);
 // app.use(scheduleRoutes);
 app.use(seatmapRoutes);
 // app.use(trackRoutes);
-// app.use(userRoutes);
+app.use(userRoutes);
 app.use(vehicleRoutes);
 app.use(otpRoutes);
 app.use(constRoutes);

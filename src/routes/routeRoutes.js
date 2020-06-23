@@ -17,7 +17,13 @@ router.get("/route/query", async (req, res) => {
   })
     .populate("startLocation")
     .populate("endLocation")
-    .populate("vehicle")
+    .populate({
+      path: "vehicle",
+      populate: {
+        path: "type",
+        model: "Const",
+      },
+    })
     .populate("status");
   if (routes) {
     console.log(routes.length);
