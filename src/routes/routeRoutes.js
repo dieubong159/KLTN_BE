@@ -9,7 +9,7 @@ const RouteDetail = mongoose.model("RouteDetail");
 const RouteSchedule = mongoose.model("RouteSchedule");
 const RouteDeparture = mongoose.model("RouteDeparture");
 const Vehicle = mongoose.model("Vehicle");
-const Station = mongoose.model("Station");
+const Location = mongoose.model("Location");
 const Agent = mongoose.model("Agent");
 const Booking = mongoose.model("Booking");
 const Const = mongoose.model("Const");
@@ -98,9 +98,14 @@ router.get('/find-routes', async (req, resp) => {
     departureDate: params.departureDate,
   };
 
+  let dataFinal = []
   let allRoute = await Route.find();
   let allRouteDetails = await RouteDetail.find().populate('station');
   let allAgents = await Agent.find();
+  let departures = await RouteDeparture.find();
+  let allBookings = await Booking.find();
+  let allLocations = await Location.find();
+  var seatStatusUnavailable = await Const.findOne({ type: "trang_thai_ghe", value: "da_dat" });
   let routeDetailByStartLocs = allRouteDetails.filter(e => e.station.stationStop == routeData.startLocation || e.station.province == routeData.startLocation);
   let routes = routeDetailByStartLocs.map(e => e.route);
   let routeDetails = routes.flatMap(e => allRouteDetails.filter(i => i.route.toString() == e.toString()));
@@ -376,10 +381,10 @@ router.get('/find-routes', async (req, resp) => {
     let sendDateFinalRoute = (routeItem)=>{
       let groupRouteValid = groupNext(routeItem);
       let temp = [];
-      let routeDetailByEnd = allRouteDetails.filter(e => e.station.stationStop.toString() == routeData.endLocation || e.station.province == routeData.endLocation);
+      let routeDetailByEnd = allRouteDetails.find(e => e.station.stationStop.toString() == routeData.endLocation || e.station.province == routeData.endLocation);
       let endDetail = ({
-        routeId : routeDetailByEnd[0].route.toString(),
-        stationStopId: routeDetailByEnd[0].station.stationStop.toString()
+        routeId : routeDetailByEnd.route.toString(),
+        stationStopId: routeDetailByEnd.station.stationStop.toString()
       });
       for(let i = 0; i < groupRouteValid.length; i++){
         let start = groupRouteValid[i][0];
@@ -398,15 +403,175 @@ router.get('/find-routes', async (req, resp) => {
       return temp;
     }
 
-    let dataValidRoute=[];
-    for (let routeValidItem of validRoute){
+    let isSameRoute = (routes1, routes2) => {
+      if (routes1.length != routes2.length) {
+        return false;
+      }
+
+      for (let i = 0; i < routes1.length; i++) {
+        if (routes1[i].routeId != routes2[i].routeId || routes1[i].startStation.stationStopId != routes2[i].startStation.stationStopId) {
+          return false;
+        }
+      }
+
+      return true;
+    };
+
+    let isExistedRoute = (routes, listRoutes) => {
+      let sameLengthRoutes = listRoutes.filter(e => e.length == routes.length);
+      if (sameLengthRoutes.length > 0) {
+        return sameLengthRoutes.some(e => isSameRoute(e, routes));
+      }
+
+      return false;
+    };
+
+    let dataValidRoute = [];
+    for (let routeValidItem of validRoute) {
       let datavalid = sendDateFinalRoute(routeValidItem);
-      dataValidRoute.push(datavalid);
+      if (!isExistedRoute(datavalid, dataValidRoute)) {
+        dataValidRoute.push(datavalid);
+      }
     }
 
-    
-    return resp.send(dataValidRoute);
-}
+    let findTimeAndPrice = (details, route, startStationId, endStationId) => {
+      let start = details.find(e => e.station.stationStop.toString() == startStationId);
+      let end = details.find(e => e.station.stationStop.toString() == endStationId);
+
+      let ranges = details.filter(e => e.orderRouteToStation <= end.orderRouteToStation);
+      ranges.sort(byOrder);
+
+      let startTimeLength = 0, endTimeLength = 0;
+      let disStartLength = 0, disEndLength = 0;
+      for (let item of ranges) {
+        if (item.orderRouteToStation <= start.orderRouteToStation) {
+          startTimeLength += item.timeArrivingToStation;
+          disStartLength += item.distanceToStation;
+        }
+
+        if (item.orderRouteToStation <= end.orderRouteToStation) {
+          endTimeLength += item.timeArrivingToStation;
+          disEndLength += item.distanceToStation;
+        }
+      }
+
+      let startTime = route.startTime.split(':');
+      let today = new Date();
+      let dateToday = today.getDate(), 
+        monthToday = today.getMonth() + 1, 
+        yearToday = today.getFullYear();
+
+      let startHour = moment(`${yearToday}-${monthToday}-${dateToday} 00:00:00`, "YYYY-MM-DD HH:mm:ss").add(parseInt(startTime[0]), 'hours').add(parseInt(startTime[1]), 'minutes').add(startTimeLength, 'hours');
+      let endHour = moment(`${yearToday}-${monthToday}-${dateToday} 00:00:00`, "YYYY-MM-DD HH:mm:ss").add(parseInt(startTime[0]), 'hours').add(parseInt(startTime[1]), 'minutes').add(endTimeLength, 'hours');
+
+      let vehicle = route.vehicle;
+      let pricePerKm = allAgents.find(e => e._id.toString() == vehicle.agent.toString()).priceToDistance;
+
+      return {
+        startHour: startHour,
+        endHour: endHour,
+        price: (disEndLength - disStartLength) * pricePerKm
+      }
+    };
+
+    let getLocation = locationId => {
+      let location = allLocations.find(e => e._id.toString() == locationId);
+      return location.address;
+    };
+
+    let getDeptAndEmptySeats = (routeId, vehicle) => {
+      let departure = departures.find(e => e.route.toString() == routeId && date == e.departureDate.getDate() && month == e.departureDate.getMonth() && year == departureDate.getFullYear());
+      let totalSeats = vehicle.totalSeats;
+      let depId = null, emptySeats = totalSeats;
+      if (departure) {
+        depId = departure._id.toString();
+        let bookedSeats = allBookings.find(e => e.routeuDeparture.toString() == departure._id.toString() && e.seatStatus.toString() == seatStatusUnavailable._id.toString()).length;
+        emptySeats = totalSeats - bookedSeats;
+      }
+
+      return {
+        depId: depId,
+        emptySeats: emptySeats
+      }
+    };
+
+    let mapRouteToDataFinal = async (routeDetail, isFirstRoute = false) => {
+      // Check first route
+      let query = {
+        '$and': [
+          { 'route': routeDetail.routeId }
+        ]
+      };
+
+      if (isFirstRoute) {
+        query['$and'].push({ 'dayOfWeek': new Date(routeData.departureDate).getDay() });
+      }
+
+      var schedule = await RouteSchedule.findOne(query);
+      if (!schedule) {
+        return null;
+      }
+
+      // Get route with vehicle
+      let route = await Route.findById(routeDetail.routeId).populate('vehicle');
+
+      // Get route details
+      let routeDetails = allRouteDetails.filter(e => e.route.toString() == route._id.toString());
+
+      // Get additional data
+      let today = new Date();
+      let dateToday = today.getDate(), monthToday = today.getMonth() + 1, yearToday = today.getFullYear();
+
+      let selectedDate = new Date(routeData.departureDate);
+      let date = selectedDate.getDate();
+      let month = selectedDate.getMonth() + 1;
+      let year = selectedDate.getFullYear();
+
+      let startAddress = getLocation(routeDetail.startStation.stationStopId);
+      let endAddress = getLocation(routeDetail.endStation.stationStopId);
+      
+      let timeAndPrice = findTimeAndPrice(routeDetails, route, routeDetail.startStation.stationStopId, routeDetail.endStation.stationStopId);
+      let deptAndSeats = getDeptAndEmptySeats(route._id.toString(), route.vehicle);
+
+      if (dateToday == date && monthToday == month && yearToday == year) {
+        let hourToday = today.getHours();
+        let minuteToday = today.getMinutes();
+        let temp = moment(`${yearToday}-${monthToday}-${dateToday} ${hourToday}:${minuteToday}:00`, "YYYY-MM-DD HH:mm:ss").add(0.5, 'hours');
+        if (!temp.isBefore(timeAndPrice.startHour, 'hours')) {
+          return null;
+        }
+      }
+
+      return {
+        '_id': route._id.toString(),
+        'vehicleId': route.vehicle._id.toString(),
+        'vehicleName': route.vehicle.name,
+        'startLocation': startAddress,
+        'endLocation': endAddress,
+        'startTime': timeAndPrice.startHour.format('HH:mm'),
+        'endTime': timeAndPrice.endHour.format('HH:mm'),
+        'price': timeAndPrice.price,
+        'departureId': deptAndSeats.depId,
+        'emptySeats': deptAndSeats.emptySeats
+      };
+    };
+
+    for (let validRoute of dataValidRoute) {
+      let mapRoutes = [];
+      let firstRoute = await mapRouteToDataFinal(validRoute[0], true);
+      if (firstRoute)
+      {
+        mapRoutes.push(firstRoute);
+        for (let i = 1; i < validRoute.length; i++) {
+          mapRoutes.push(await mapRouteToDataFinal(validRoute[i]));
+        }
+
+        dataFinal.push(mapRoutes);
+      }
+    }
+
+    return resp.send(dataFinal);
+  }
 
   routes = routeDetailByEndLocs.map(e => e.route);
   routeDetails = routes.flatMap(e => allRouteDetails.filter(i => i.route.toString() == e.toString()));
@@ -436,10 +601,6 @@ router.get('/find-routes', async (req, resp) => {
   routeDetails = routes.flatMap(e => allRouteDetails.filter(i => i.route.toString() == e._id.toString()));
   routeDetailGroups = groupBy(routeDetails, 'route');
 
-  let departures = await RouteDeparture.find();
-  let allBookings = await Booking.find();
-  var seatStatusUnavailable = await Const.findOne({ type: "trang_thai_ghe", value: "da_dat" });
-  let dataFinal = []
   for (prop in routeDetailGroups) {
     let details = routeDetailGroups[prop];
 
@@ -499,7 +660,7 @@ router.get('/find-routes', async (req, resp) => {
     }
 
     if (valid) {
-      dataFinal.push({
+      dataFinal.push([{
         '_id': prop,
         'vehicleId': vehicle._id.toString(),
         'vehicleName': vehicle.name,
@@ -510,7 +671,7 @@ router.get('/find-routes', async (req, resp) => {
         'price': (disEndLength - disStartLength) * pricePerKm,
         'departureId': depId,
         'emptySeats': emptySeats
-      });
+      }]);
     }
   }
 
