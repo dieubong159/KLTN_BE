@@ -372,8 +372,40 @@ router.get('/find-routes', async (req, resp) => {
         validRoute.push(routeItem);
       }
     }
+
+    let sendDateFinalRoute = (routeItem)=>{
+      let groupRouteValid = groupNext(routeItem);
+      let temp = [];
+      let routeDetailByEnd = allRouteDetails.filter(e => e.station.stationStop.toString() == routeData.endLocation || e.station.province == routeData.endLocation);
+      let endDetail = ({
+        routeId : routeDetailByEnd[0].route.toString(),
+        stationStopId: routeDetailByEnd[0].station.stationStop.toString()
+      });
+      for(let i = 0; i < groupRouteValid.length; i++){
+        let start = groupRouteValid[i][0];
+        let end ;
+        if(i == groupRouteValid.length - 1){
+          end = endDetail;
+        }else{
+          end = groupRouteValid[i+1][0];
+        }
+        temp.push({
+          routeId: start.routeId,
+          startStation : start,
+          endStation : end
+        })
+      }
+      return temp;
+    }
+
+    let dataValidRoute=[];
+    for (let routeValidItem of validRoute){
+      let datavalid = sendDateFinalRoute(routeValidItem);
+      dataValidRoute.push(datavalid);
+    }
+
     
-    return resp.send(validRoute);
+    return resp.send(dataValidRoute);
 }
 
   routes = routeDetailByEndLocs.map(e => e.route);
