@@ -15,7 +15,15 @@ const routeSchema = mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "Location",
   },
+  startProvince: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Location",
+  },
   endLocation: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Location",
+  },
+  endProvince: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Location",
   },
@@ -26,9 +34,56 @@ const routeSchema = mongoose.Schema({
   price: {
     type: Number,
   },
+  isCorrectRoute:{
+    type: Boolean
+  }
+});
+
+const routeDetailSchema = mongoose.Schema({
+  route: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Route",
+  },
+  station: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Station",
+  },
+  timeArrivingToStation:{
+    type: Number
+  },
+  distanceToStation:{
+    type:Number
+  },
+  orderRouteToStation:{
+    type:Number
+  }
+});
+
+const routeScheduleSchema = mongoose.Schema({
+  route: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Route",
+  },
+  dayOfWeek: {
+    type: Number,
+  },
+});
+
+const routeDepartureSchema = mongoose.Schema({
+  route: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Route",
+  },
+  routeSchedule: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "RouteSchedule",
+  },
   departureDate: {
     type: Date,
   },
 });
 
 mongoose.model("Route", routeSchema);
+mongoose.model("RouteDetail", routeDetailSchema);
+mongoose.model("RouteSchedule", routeScheduleSchema);
+mongoose.model("RouteDeparture", routeDepartureSchema);
