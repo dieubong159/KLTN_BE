@@ -17,7 +17,15 @@ const vehicleSchema = mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "Location",
   },
+  startProvince: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Location",
+  },
   endLocation: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Location",
+  },
+  endProvince: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Location",
   },
@@ -28,6 +36,9 @@ const vehicleSchema = mongoose.Schema({
   agent: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Agent",
+  },
+  isOnline:{
+    type: Boolean
   }
 });
 

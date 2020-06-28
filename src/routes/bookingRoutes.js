@@ -5,6 +5,8 @@ const axios = require("axios");
 
 const Booking = mongoose.model("Booking");
 const Route = mongoose.model("Route");
+const RouteDeparture = mongoose.model("RouteDeparture");
+const RouteSchedule = mongoose.model("RouteSchedule");
 const Const = mongoose.model("Const");
 
 const router = express.Router();
@@ -128,14 +130,31 @@ router.get("/booking", async (req, res) => {
 });
 
 router.post("/booking", async (req, res, next) => {
-  // console.log(req.body);
   const payload = req.body;
+  // const booking = new Booking({
+  //   routeuDeparture : payload.routeuDeparture,
+  //   seatNumber: payload.seatNumber,
+  //   price : payload.price
+  // });
 
-  var validroute = mongoose.Types.ObjectId.isValid(payload.route);
+  let routeuDepartureData = payload.routeuDeparture;
+  if(!payload.routeuDeparture){
+    let departureDate = new Date(payload.departureDate);
+    let routeSchedule = RouteSchedule.findOne({route: payload.route,dayOfWeek: departureDate.getDay()});
+    const routeuDeparture = new RouteDeparture({
+      route: payload.route,
+      routeSchedule:routeSchedule._id,
+      departureDate : departureDate
+    });
+    await routeuDeparture.save();
+    routeuDepartureData = routeuDeparture._id;
+  }
+
+  var validroute = mongoose.Types.ObjectId.isValid(payload.routeuDeparture);
   console.log(validroute);
 
   if (validroute) {
-    const routeExist = await Route.exists({ _id: payload.route });
+    const routeExist = await RouteDeparture.exists({ _id: payload.routeuDeparture });
     console.log(routeExist);
     if (!routeExist) {
       return res.status(500).json({
@@ -159,7 +178,7 @@ router.post("/booking", async (req, res, next) => {
 
   payload.seats.forEach((seat) => {
     const bookingInfo = {
-      route: payload.route,
+      routeuDeparture: routeuDepartureData,
       seatNumber: seat.seatNumber,
       price: payload.price,
       bookingInformation: payload.bookingInformation,
