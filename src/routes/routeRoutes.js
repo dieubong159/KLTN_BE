@@ -607,6 +607,10 @@ router.get('/find-routes', async (req, resp) => {
     let start = details.find(e => e.station.stationStop == routeData.startLocation || e.station.province == routeData.startLocation);
     let end = details.find(e => e.station.stationStop == routeData.endLocation || e.station.province == routeData.endLocation);
 
+    let startAddress = allLocations.find(e => e._id == start.station.stationStop.toString()).address;
+    let endAddress = allLocations.find(e => e._id == end.station.stationStop.toString()).address;
+
+
     let ranges = details.filter(e => e.orderRouteToStation <= end.orderRouteToStation);
     ranges.sort(byOrder);
 
@@ -664,8 +668,8 @@ router.get('/find-routes', async (req, resp) => {
         '_id': prop,
         'vehicleId': vehicle._id.toString(),
         'vehicleName': vehicle.name,
-        'startLocation': start.station.address,
-        'endLocation': end.station.address,
+        'startLocation': startAddress,
+        'endLocation': endAddress,
         'startTime': startHour.format('HH:mm'),
         'endTime': endHour.format('HH:mm'),
         'price': (disEndLength - disStartLength) * pricePerKm,
