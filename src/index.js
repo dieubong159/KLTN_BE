@@ -31,6 +31,9 @@ const constRoutes = require("./routes/constRoutes");
 
 const app = express();
 
+const http = require("http").Server(app);
+const io = require("socket.io")(http);
+
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(bodyParser.raw());
@@ -49,6 +52,14 @@ app.use(userRoutes);
 app.use(vehicleRoutes);
 app.use(otpRoutes);
 app.use(constRoutes);
+
+io.on("connection", (socket) => {
+  console.log("New client connected");
+});
+
+setInterval(() => {
+  io.emit("ping", { data: new Date() / 1 });
+}, 1000);
 
 const mongoUri =
   "mongodb+srv://dieubong159:dieu16110291@reactnative-obpke.mongodb.net/test?retryWrites=true&w=majority";
@@ -71,6 +82,6 @@ app.get("/", requireAuth, (req, res) => {
   res.send(`Your email is ${req.user.email}`);
 });
 
-app.listen(3000, () => {
+http.listen(3000, () => {
   console.log("Listening on port 3000");
 });
