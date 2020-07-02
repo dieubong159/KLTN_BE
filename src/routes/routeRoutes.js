@@ -60,25 +60,26 @@ var byOrder = (a, b) => {
 };
 
 router.get("/route", async (req, res) => {
-  const params = req.query;
-  const routes = await Route.find({
-    startLocation: payload.startLocation,
-    endLocation: payload.endLocation,
-    departureDate: date.toISOString(),
-  })
-    .populate("startLocation")
-    .populate("endLocation")
-    .populate({
-      path: "vehicle",
-      populate: {
-        path: "type",
-        model: "Const",
-      },
-    })
-    .populate("status");
-  if (routes.length !== 0) {
-    res.status(200).send(routes);
-  } else {
+  // const payload = req.query;
+  // const date = new Date(payload.departureDate.substring(0, 10) + " 00:00");
+  // const routes = await Route.find({
+  //   startLocation: payload.startLocation,
+  //   endLocation: payload.endLocation,
+  //   departureDate: date.toISOString(),
+  // })
+  //   .populate("startLocation")
+  //   .populate("endLocation")
+  //   .populate({
+  //     path: "vehicle",
+  //     populate: {
+  //       path: "type",
+  //       model: "Const",
+  //     },
+  //   })
+  //   .populate("status");
+  // if (routes.length !== 0) {
+  //   res.status(200).send(routes);
+  // } else {
     const routes = await Route.find()
       .populate("startLocation")
       .populate("endLocation")
@@ -100,30 +101,7 @@ router.get("/route", async (req, res) => {
         },
       });
     res.status(200).send(routes);
-  }
-});
-
-router.get("/route", async (req, res) => {
-  const routes = await Route.find()
-    .populate("startLocation")
-    .populate("endLocation")
-    .populate("status")
-    .populate({
-      path: "status",
-      model: "Const",
-      populate: {
-        path: "agent",
-      },
-    })
-    .populate({
-      path: "vehicle",
-      model: "Vehicle",
-      populate: {
-        path: "startLocation endLocation agent",
-      },
-    });
-  // console.log(routes);
-  res.status(200).send(routes);
+  // }
 });
 
 router.get('/find-routes', async (req, resp) => {
@@ -141,6 +119,7 @@ router.get('/find-routes', async (req, resp) => {
   let departures = await RouteDeparture.find();
   let allBookings = await Booking.find();
   let allLocations = await Location.find();
+  let allConst = await Const.find();
   var seatStatusUnavailable = await Const.findOne({ type: "trang_thai_ghe", value: "da_dat" });
   let routeDetailByStartLocs = allRouteDetails.filter(e => e.station.stationStop == routeData.startLocation || e.station.province == routeData.startLocation);
   let routes = routeDetailByStartLocs.map(e => e.route);
@@ -501,12 +480,14 @@ router.get('/find-routes', async (req, resp) => {
       let endHour = moment(`${yearToday}-${monthToday}-${dateToday} 00:00:00`, "YYYY-MM-DD HH:mm:ss").add(parseInt(startTime[0]), 'hours').add(parseInt(startTime[1]), 'minutes').add(endTimeLength, 'hours');
 
       let vehicle = route.vehicle;
-      let pricePerKm = allAgents.find(e => e._id.toString() == vehicle.agent.toString()).priceToDistance;
+      let agent = allAgents.find(e => e._id.toString() == vehicle.agent.toString());
+      let pricePerKm = agent.priceToDistance;
 
       return {
         startHour: startHour,
         endHour: endHour,
-        price: (disEndLength - disStartLength) * pricePerKm
+        price: (disEndLength - disStartLength) * pricePerKm,
+        agentName : agent.name
       }
     };
 
@@ -569,6 +550,8 @@ router.get('/find-routes', async (req, resp) => {
       let timeAndPrice = findTimeAndPrice(routeDetails, route, routeDetail.startStation.stationStopId, routeDetail.endStation.stationStopId);
       let deptAndSeats = getDeptAndEmptySeats(route._id.toString(), route.vehicle);
 
+      let typeVehicle = allConst.find(e => e._id.toString() == route.vehicle.type.toString());
+
       if (dateToday == date && monthToday == month && yearToday == year) {
         let hourToday = today.getHours();
         let minuteToday = today.getMinutes();
@@ -580,8 +563,9 @@ router.get('/find-routes', async (req, resp) => {
 
       return {
         '_id': route._id.toString(),
-        'vehicleId': route.vehicle._id.toString(),
-        'vehicleName': route.vehicle.name,
+        'vehicle': route.vehicle,
+        'typeVehicle' : typeVehicle,
+        'agentName': timeAndPrice.agentName,
         'startLocation': startAddress,
         'endLocation': endAddress,
         'startTime': timeAndPrice.startHour.format('HH:mm'),
@@ -673,7 +657,9 @@ router.get('/find-routes', async (req, resp) => {
     let endHour = moment(`${yearToday}-${monthToday}-${dateToday} 00:00:00`, "YYYY-MM-DD HH:mm:ss").add(parseInt(startTime[0]), 'hours').add(parseInt(startTime[1]), 'minutes').add(endTimeLength, 'hours');
 
     let vehicle = route.vehicle;
-    let pricePerKm = allAgents.find(e => e._id.toString() == vehicle.agent.toString()).priceToDistance;
+    let typeVehicle = allConst.find(e => e._id.toString() == vehicle.type.toString());
+    let agent = allAgents.find(e => e._id.toString() == vehicle.agent.toString());
+    let pricePerKm = agent.priceToDistance;
 
     let selectedDate = new Date(routeData.departureDate);
     let date = selectedDate.getDate();
@@ -702,8 +688,9 @@ router.get('/find-routes', async (req, resp) => {
     if (valid) {
       dataFinal.push([{
         '_id': prop,
-        'vehicleId': vehicle._id.toString(),
-        'vehicleName': vehicle.name,
+        'vehicle': vehicle,
+        'typeVehicle' : typeVehicle,
+        'agentName' : agent.name,
         'startLocation': startAddress,
         'endLocation': endAddress,
         'startTime': startHour.format('HH:mm'),

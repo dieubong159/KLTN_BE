@@ -19,6 +19,7 @@ router.get("/vehicle", async (req, res) => {
     .populate("endProvince")
     .populate("agent")
     .populate("type");
+
   res.status(200).send(routes);
 });
 
