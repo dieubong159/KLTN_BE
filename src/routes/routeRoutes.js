@@ -377,13 +377,13 @@ router.get('/find-routes', async (req, resp) => {
       let dayOfWeeks = [0, 1, 2, 3, 4, 5, 6];
       let countDay = 0;
       for (let i = dayOfWeeks.indexOf(dayOfWeek); i < dayOfWeeks.length; i++) {
-        if (i == dayOfWeeks.length - 1) {
-          i = 0;
-        }
-
         countDay++;
         if (dayOfWeeks[i] == foundDay) {
           break;
+        }
+
+        if (i == dayOfWeeks.length - 1) {
+          i = 0;
         }
       }
 
