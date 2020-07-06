@@ -426,6 +426,10 @@ router.get('/find-routes', async (req, resp) => {
               let routeDetail = getRouteDetail(temp[0][0]); 
               startTime = findTimeToStation(startTime, routeDetail);
             } else {
+              if(temp[i-1].length == 1){
+                startTime = findTimeToNextRouteDetail(startTime, temp[i-1][0]);
+              }
+
               let timeToRoute = findTimeToCurrentStation(startTime, temp[i][0]);
               if (timeToRoute.isAfter(startTime)) {
                 // Cùng ngày, giờ hợp lệ
