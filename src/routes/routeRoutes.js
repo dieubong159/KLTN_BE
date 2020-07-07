@@ -122,6 +122,7 @@ router.get("/find-routes", async (req, resp) => {
   let allConst = await Const.find();
   let allSchedules = await RouteSchedule.find();
   var seatStatusUnavailable = await Const.findOne({ type: "trang_thai_ghe", value: "da_dat" });
+  var seatStatusPlaceholder = await Const.findOne({ type: "trang_thai_ghe", value: "giu_cho" });
   let routeDetailByStartLocs = allRouteDetails.filter(e => e.station.stationStop == routeData.startLocation || e.station.province == routeData.startLocation);
   let routes = routeDetailByStartLocs.map(e => e.route);
   let routeDetails = routes.flatMap(e => allRouteDetails.filter(i => i.route.toString() == e.toString()));
@@ -623,11 +624,9 @@ router.get("/find-routes", async (req, resp) => {
         emptySeats = totalSeats;
       if (departure) {
         depId = departure._id.toString();
-        let bookedSeats = allBookings.find(
-          (e) =>
-            e.routeDeparture.toString() == departure._id.toString() &&
-            e.seatStatus.toString() == seatStatusUnavailable._id.toString()
-        ).length;
+        let bookedSeats = allBookings.filter((e) =>
+          e.routeDeparture.toString() == departure._id.toString() && 
+          (e.seatStatus.toString() == seatStatusUnavailable._id.toString() || e.seatStatus.toString() == seatStatusPlaceholder._id.toString())).length;
         emptySeats = totalSeats - bookedSeats;
       }
 
@@ -841,15 +840,12 @@ router.get("/find-routes", async (req, resp) => {
 
     let departure = departures.find(e => e.route.toString() == prop && date == e.departureDate.getDate() && month == e.departureDate.getMonth() + 1 && year == e.departureDate.getFullYear());
     let totalSeats = vehicle.totalSeats;
-    let depId = null,
-      emptySeats = totalSeats;
+    let depId = null, emptySeats = totalSeats;
     if (departure) {
       depId = departure._id.toString();
-      let bookedSeats = allBookings.find(
-        (e) =>
-          e.routeDeparture.toString() == departure._id.toString() &&
-          e.seatStatus.toString() == seatStatusUnavailable._id.toString()
-      ).length;
+      let bookedSeats = allBookings.filter((e) =>
+          e.routeDeparture.toString() == departure._id.toString() && 
+          (e.seatStatus.toString() == seatStatusUnavailable._id.toString() || e.seatStatus.toString() == seatStatusPlaceholder._id.toString())).length;
       emptySeats = totalSeats - bookedSeats;
     }
 
