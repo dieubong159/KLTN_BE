@@ -839,7 +839,7 @@ router.get("/find-routes", async (req, resp) => {
     let month = selectedDate.getMonth() + 1;
     let year = selectedDate.getFullYear();
 
-    let departure = departures.find(e => e.route.toString() == prop && date == e.departureDate.getDate() && month == e.departureDate.getMonth() && year == e.departureDate.getFullYear());
+    let departure = departures.find(e => e.route.toString() == prop && date == e.departureDate.getDate() && month == e.departureDate.getMonth() + 1 && year == e.departureDate.getFullYear());
     let totalSeats = vehicle.totalSeats;
     let depId = null,
       emptySeats = totalSeats;
