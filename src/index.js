@@ -50,14 +50,19 @@ app.use(userRoutes);
 app.use(vehicleRoutes);
 app.use(otpRoutes);
 app.use(constRoutes);
+app.set("socketIo", io);
+
+io.sockets.on("connect", (socket) => {
+  const sessionID = socket.id;
+  app.set("socketIoId", sessionID);
+});
 
 io.on("connection", (socket) => {
   console.log("New client connected");
+  socket.on("disconnect", () => {
+    console.log("Client Disconnected");
+  });
 });
-
-setInterval(() => {
-  io.emit("ping", { data: new Date() / 1 });
-}, 1000);
 
 const mongoUri =
   "mongodb+srv://dieubong159:dieu16110291@reactnative-obpke.mongodb.net/test?retryWrites=true&w=majority";

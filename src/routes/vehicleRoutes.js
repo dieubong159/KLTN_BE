@@ -23,29 +23,31 @@ router.get("/vehicle", async (req, res) => {
 });
 
 router.get("/vehicle/:vehicle_id", async (req, res) => {
-  console.log(req.params.vehicle_id);
+  // console.log(req.params.vehicle_id);
   const vehicle = await Vehicle.findById(req.params.vehicle_id)
-  .populate("startLocation")
-  .populate("endLocation")
-  .populate("startProvince")
-  .populate("endProvince")
-  .populate("agent")
-  .populate("type");
+    .populate("startLocation")
+    .populate("endLocation")
+    .populate("startProvince")
+    .populate("endProvince")
+    .populate("agent")
+    .populate("type");
 
   var queryStation = { vehicle: req.params.vehicle_id };
   const listStation = await Station.find(queryStation)
-  .populate("stationStop")
-  .populate("province")
-  .populate("vehicle")
-  .populate({
-    path: "vehicle",
-    model: "Vehicle",
-    populate: { path: "startLocation endLocation startProvince endProvince agent type" },
-  });
+    .populate("stationStop")
+    .populate("province")
+    .populate("vehicle")
+    .populate({
+      path: "vehicle",
+      model: "Vehicle",
+      populate: {
+        path: "startLocation endLocation startProvince endProvince agent type",
+      },
+    });
 
   return res.send({
     vehicles: vehicle,
-    listStations: listStation
+    listStations: listStation,
   });
 });
 router.post("/vehicle", async (req, res) => {
@@ -145,110 +147,111 @@ router.delete("/vehicle/:vehicle_id", async (req, res) => {
     });
 });
 
-
-router.post("/vehicle/addvehicleandseatmap", async (req, res) => { 
+router.post("/vehicle/addvehicleandseatmap", async (req, res) => {
   var data = req.body.vehicleData;
   const startLocation = new Location({
-    address : data.location[0],
-    coords:{
+    address: data.location[0],
+    coords: {
       latitude: data.latitudeLocation[0],
-      longtitude: data.longtitudeLocation[0]
-    }
+      longtitude: data.longtitudeLocation[0],
+    },
   });
 
   const endLocation = new Location({
-    address : data.location[1],
-    coords:{
+    address: data.location[1],
+    coords: {
       latitude: data.latitudeLocation[1],
-      longtitude: data.longtitudeLocation[1]
-    }
+      longtitude: data.longtitudeLocation[1],
+    },
   });
 
   const startProvince = new Location({
-    address : data.locationProvince[0],
-    coords:{
+    address: data.locationProvince[0],
+    coords: {
       latitude: data.latitudeProvince[0],
-      longtitude: data.longtitudeProvince[0]
-    }
+      longtitude: data.longtitudeProvince[0],
+    },
   });
 
   const endProvince = new Location({
-    address : data.locationProvince[1],
-    coords:{
+    address: data.locationProvince[1],
+    coords: {
       latitude: data.latitudeProvince[1],
-      longtitude: data.longtitudeProvince[1]
-    }
+      longtitude: data.longtitudeProvince[1],
+    },
   });
   const vehicle = new Vehicle({
     type: data.vehicleType,
-    name : data.name,
-    totalSeats:data.totalSeats,
+    name: data.name,
+    totalSeats: data.totalSeats,
     licensePlates: data.licensePlates,
     startLocation: startLocation._id,
     startProvince: startProvince._id,
     endLocation: endLocation._id,
     endProvince: endProvince._id,
     agent: data.vehicleAgent,
-    isOnline : data.isOnline
+    isOnline: data.isOnline,
   });
 
   var locationFromcheck = await Location.findOne({
-    coords:{
+    coords: {
       latitude: startLocation.coords.latitude,
-      longtitude: startLocation.coords.longtitude
-    }
+      longtitude: startLocation.coords.longtitude,
+    },
   });
-  if(!locationFromcheck){
+  if (!locationFromcheck) {
     startLocation.save();
-  }
-  else{
+  } else {
     vehicle.startLocation = locationFromcheck._id;
   }
 
   var locationtocheck = await Location.findOne({
-    coords:{
+    coords: {
       latitude: endLocation.coords.latitude,
-      longtitude: endLocation.coords.longtitude
-    }
+      longtitude: endLocation.coords.longtitude,
+    },
   });
-  if(!locationtocheck){
+  if (!locationtocheck) {
     endLocation.save();
-  }else{
+  } else {
     vehicle.endLocation = locationtocheck._id;
   }
 
   var provinceFromCheck = await Location.findOne({
-    coords:{
+    coords: {
       latitude: startProvince.coords.latitude,
-      longtitude: startProvince.coords.longtitude
-    }
+      longtitude: startProvince.coords.longtitude,
+    },
   });
-  if(!provinceFromCheck){
+  if (!provinceFromCheck) {
     startProvince.save();
-  }else{
+  } else {
     vehicle.startProvince = provinceFromCheck._id;
   }
 
   var provinceToCheck = await Location.findOne({
-    coords:{
+    coords: {
       latitude: endProvince.coords.latitude,
-      longtitude: endProvince.coords.longtitude
-    }
+      longtitude: endProvince.coords.longtitude,
+    },
   });
-  if(!provinceToCheck){
+  if (!provinceToCheck) {
     endProvince.save();
-  }else{
+  } else {
     vehicle.endProvince = provinceToCheck._id;
   }
 
-  let map = await Map.findOne({agent:data.vehicleAgent, type:data.vehicleType});
+  let map = await Map.findOne({
+    agent: data.vehicleAgent,
+    type: data.vehicleType,
+  });
   let seatMap = req.body.seatMap;
-  seatMap.forEach(item => {
+  seatMap.forEach((item) => {
     let seat = new SeatMap({
       vehicle: vehicle._id,
       index: item.item1,
       seatNumber: item.item2,
-      mapDetail : map._id
+      mapDetail: map._id,
     });
 
     seat.save();
@@ -258,79 +261,75 @@ router.post("/vehicle/addvehicleandseatmap", async (req, res) => {
 
   const startStation = new Station({
     vehicle: vehicle._id,
-    stationStop : vehicle.startLocation,
-    province : vehicle.startProvince,
-    orderRouteToStation: data.orderToStation[0]
+    stationStop: vehicle.startLocation,
+    province: vehicle.startProvince,
+    orderRouteToStation: data.orderToStation[0],
   });
 
   const endStation = new Station({
     vehicle: vehicle._id,
-    stationStop : vehicle.endLocation,
-    province : vehicle.endProvince,
-    orderRouteToStation: data.orderToStation[1]
+    stationStop: vehicle.endLocation,
+    province: vehicle.endProvince,
+    orderRouteToStation: data.orderToStation[1],
   });
 
   startStation.save();
   endStation.save();
 
   let length = data.locationAddStation.length;
-  for(let i = 0;i<length;i++){
+  for (let i = 0; i < length; i++) {
     const locationStationNew = new Location({
-      address : data.locationAddStation[i],
-      coords:{
+      address: data.locationAddStation[i],
+      coords: {
         latitude: data.latitudeLocationAddStation[i],
-        longtitude: data.longitudeLocationAddStation[i]
-      }
+        longtitude: data.longitudeLocationAddStation[i],
+      },
     });
-  
+
     const locationProvinceNew = new Location({
-      address : data.locationAddProvince[i],
-      coords:{
+      address: data.locationAddProvince[i],
+      coords: {
         latitude: data.latitudeLocationAddProvince[i],
-        longtitude: data.longitudeLocationAddProvince[i]
-      }
+        longtitude: data.longitudeLocationAddProvince[i],
+      },
     });
 
     const stationNew = new Station({
       vehicle: vehicle._id,
-      stationStop : locationStationNew._id,
-      province : locationProvinceNew._id,
-      orderRouteToStation: data.orderToAddStation[i]
+      stationStop: locationStationNew._id,
+      province: locationProvinceNew._id,
+      orderRouteToStation: data.orderToAddStation[i],
     });
 
     var stationNewCheck = await Location.findOne({
-      coords:{
+      coords: {
         latitude: locationStationNew.coords.latitude,
-        longtitude: locationStationNew.coords.longtitude
-      }
+        longtitude: locationStationNew.coords.longtitude,
+      },
     });
-    if(stationNewCheck){
-      stationNew.stationStop = stationNewCheck._id
-    }
-    else{
+    if (stationNewCheck) {
+      stationNew.stationStop = stationNewCheck._id;
+    } else {
       await locationStationNew.save();
     }
 
     var provinceNewCheck = await Location.findOne({
-      coords:{
+      coords: {
         latitude: locationProvinceNew.coords.latitude,
-        longtitude: locationProvinceNew.coords.longtitude
-      }
+        longtitude: locationProvinceNew.coords.longtitude,
+      },
     });
-    if(provinceNewCheck){
-      stationNew.province = provinceNewCheck._id
-    }
-    else{
+    if (provinceNewCheck) {
+      stationNew.province = provinceNewCheck._id;
+    } else {
       await locationProvinceNew.save();
     }
-    await stationNew.save();   
+    await stationNew.save();
   }
 
   res.status(200).json({
     message: "Data save changed successfully!",
   });
-
-
 });
 
 module.exports = router;

@@ -11,9 +11,10 @@ const Booking = mongoose.model("Booking");
 
 router.get("/seatmap", async (req, res) => {
   const params = req.query;
+  console.log(params);
   const data = {
     vehicleId: params.vehicleId,
-    departureId: params.departureId
+    departureId: params.departureId,
   };
 
   var querySeatMap = { vehicle: data.vehicleId };
@@ -23,16 +24,15 @@ router.get("/seatmap", async (req, res) => {
     populate: { path: "type orderType" },
   });
 
-  if(data.departureId){
-    var querybooking = { routeuDeparture: data.departureId};
+  if (data.departureId) {
+    var querybooking = { routeDeparture: data.departureId };
     var booking = await Booking.find(querybooking).populate("seatStatus");
   }
-  
 
   let seatMapStatus = seatmap.map((seat) => {
     if (seat.seatNumber) {
       let seatState = { seatStatus: "trong", displayStatus: "Ghế trống" };
-      if(booking){
+      if (booking) {
         let book = booking.find((e) => e.seatNumber == seat.seatNumber);
         if (book) {
           seatState = {

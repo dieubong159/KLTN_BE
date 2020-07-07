@@ -14,10 +14,8 @@ const paymentSchema = mongoose.Schema({
   counpon: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Coupon",
-    default: null
+    default: null,
   },
-  pricePayment: { type: Number },
-  price: { type: Number },
   paymentTime: { type: Date, default: Date.now() },
 });
 

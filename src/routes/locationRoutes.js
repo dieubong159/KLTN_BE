@@ -6,6 +6,7 @@ const Location = mongoose.model("Location");
 const router = express.Router();
 
 router.get("/location", async (req, res) => {
+  // console.log("VO");
   const routes = await Location.find();
   res.status(200).send(routes);
 });
@@ -22,23 +23,22 @@ router.post("/location", async (req, res) => {
   const data = req.body;
   console.log(req.body);
   const location = new Location({
-    address : data.address,
-    coords:{
+    address: data.address,
+    coords: {
       latitude: data.coords.latitude,
-      longtitude: data.coords.longtitude
-    }
+      longtitude: data.coords.longtitude,
+    },
   });
   var locationcheck = await Location.findOne({
-    coords:{
+    coords: {
       latitude: location.coords.latitude,
-      longtitude: location.coords.longtitude
-    }
+      longtitude: location.coords.longtitude,
+    },
   });
   console.log(locationcheck);
-  if(locationcheck){
+  if (locationcheck) {
     return res.status(422).send({ error: "You must provide an address" });
-  }
-  else{
+  } else {
     location.save();
     res.status(200).send(location);
   }

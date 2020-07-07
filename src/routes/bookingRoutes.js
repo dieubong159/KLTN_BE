@@ -18,29 +18,43 @@ var partnerCode = "MOMOX3LR20200621";
 var accessKey = "6pnCTPbCaPV5wew2";
 var serectkey = "ZmdAGeuX53DbdXPGrrISDEzRngk2QRwg";
 var orderInfo = "Thanh toán bằng Momo";
-var returnUrl = "exp://192.168.43.203:19000";
-var notifyurl = "https://b0cef30944c2.ngrok.io/booking/momo_ipn";
+// var returnUrl = "";
+var notifyurl = "https://507433a30f5f.ngrok.io/booking/momo_ipn";
 var requestType = "captureMoMoWallet";
 var extraData = "";
 
+const makeCode = (length) => {
+  var result = "";
+  var characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  var charactersLength = characters.length;
+  for (var i = 0; i < length; i++) {
+    result += characters.charAt(Math.floor(Math.random() * charactersLength));
+  }
+  return result;
+};
+
 router.post("/booking/req_momo", async (req, res) => {
   const payload = req.body;
-  console.log(payload);
+  // console.log("Request momo: " + JSON.stringify(payload));
+  // console.log("Request momo: " + payload);
+
+  // console.log("Request momo:" + payload.bookingId);
+  var amount = payload.routeDetail.price * payload.seats.length;
   var rawSignature =
     "partnerCode=" +
     partnerCode +
     "&accessKey=" +
     accessKey +
     "&requestId=" +
-    payload.bookingId +
+    payload.orderId +
     "&amount=" +
-    payload.amount.toString() +
+    amount.toString() +
     "&orderId=" +
-    payload.bookingId +
+    payload.orderId +
     "&orderInfo=" +
     orderInfo +
     "&returnUrl=" +
-    returnUrl +
+    payload.redirectUrl +
     "&notifyUrl=" +
     notifyurl +
     "&extraData=" +
@@ -57,11 +71,11 @@ router.post("/booking/req_momo", async (req, res) => {
   var body = JSON.stringify({
     partnerCode: partnerCode,
     accessKey: accessKey,
-    requestId: payload.bookingId,
-    amount: payload.amount.toString(),
-    orderId: payload.bookingId,
+    requestId: payload.orderId,
+    amount: amount.toString(),
+    orderId: payload.orderId,
     orderInfo: orderInfo,
-    returnUrl: returnUrl,
+    returnUrl: payload.redirectUrl,
     notifyUrl: notifyurl,
     extraData: extraData,
     requestType: requestType,
@@ -74,6 +88,7 @@ router.post("/booking/req_momo", async (req, res) => {
     );
     if (response.data) {
       res.status(200).send(response.data);
+      console.log(response.data);
     }
   } catch (err) {
     res.status(404).send(err);
@@ -131,41 +146,39 @@ router.get("/booking", async (req, res) => {
 
 router.post("/booking", async (req, res, next) => {
   const payload = req.body;
-  // const booking = new Booking({
-  //   routeuDeparture : payload.routeuDeparture,
-  //   seatNumber: payload.seatNumber,
-  //   price : payload.price
-  // });
 
-  let routeuDepartureData = payload.routeuDeparture;
-  if(!payload.routeuDeparture){
+  let departureId = payload.departureId;
+  if (!departureId) {
     let departureDate = new Date(payload.departureDate);
-    let routeSchedule = RouteSchedule.findOne({route: payload.route,dayOfWeek: departureDate.getDay()});
-    const routeuDeparture = new RouteDeparture({
-      route: payload.route,
-      routeSchedule:routeSchedule._id,
-      departureDate : departureDate
+    let routeSchedule = RouteSchedule.findOne({
+      route: payload.routeId,
+      dayOfWeek: departureDate.getDay(),
     });
-    await routeuDeparture.save();
-    routeuDepartureData = routeuDeparture._id;
+    const routeDeparture = new RouteDeparture({
+      route: payload.routeId,
+      routeSchedule: (await routeSchedule)._id,
+      departureDate: departureDate,
+    });
+    await routeDeparture.save();
+    departureId = routeDeparture._id;
   }
 
-  var validroute = mongoose.Types.ObjectId.isValid(payload.routeuDeparture);
-  console.log(validroute);
+  var validroute = mongoose.Types.ObjectId.isValid(departureId);
 
-  if (validroute) {
-    const routeExist = await RouteDeparture.exists({ _id: payload.routeuDeparture });
-    console.log(routeExist);
-    if (!routeExist) {
-      return res.status(500).json({
-        error: "Route not exist",
-      });
-    }
-  } else {
-    return res.status(500).json({
-      error: "Not a valid ID",
-    });
-  }
+  // if (validroute) {
+  //   const routeDepartureExist = await RouteDeparture.exists({
+  //     _id: payload.departureId,
+  //   });
+  //   if (!routeDepartureExist) {
+  //     res.status(500).json({
+  //       error: "Route not exist",
+  //     });
+  //   }
+  // } else {
+  //   res.status(500).json({
+  //     error: "Not a valid ID",
+  //   });
+  // }
 
   var constSeats = await Const.findOne({
     type: "trang_thai_ghe",
@@ -176,48 +189,88 @@ router.post("/booking", async (req, res, next) => {
     value: "cho",
   });
 
-  payload.seats.forEach((seat) => {
-    const bookingInfo = {
-      routeuDeparture: routeuDepartureData,
-      seatNumber: seat.seatNumber,
-      price: payload.price,
-      bookingInformation: payload.bookingInformation,
-      seatStatus: constSeats,
-      status: constBooking,
-    };
-    const booking = new Booking(bookingInfo);
-    console.log(booking);
-    booking
-      .save()
-      .then(() => {
-        return res.status(200).json({
-          message: "Booking added successfully!",
-        });
-      })
-      .catch((error) => {
-        console.log(error);
-        return res.status(500).json({
-          error: error.response,
-        });
+  var bookingCode;
+  try {
+    var booking = [0];
+    while (booking.length > 0) {
+      bookingCode = makeCode(5);
+      booking = await Booking.find({
+        bookingCode: bookingCode,
+        status: constBooking,
       });
-  });
+    }
+  } catch (error) {
+    console.log("Check booking code exists: " + error);
+  }
+  var orderId;
+  try {
+    await payload.seats.forEach((seat) => {
+      const bookingInfo = {
+        routeDeparture: departureId,
+        seatNumber: seat.seatNumber,
+        price: payload.price,
+        user: payload.userId,
+        bookingInformation: payload.bookingInformation,
+        seatStatus: constSeats,
+        status: constBooking,
+        bookingCode: bookingCode,
+      };
+      const booking = new Booking(bookingInfo);
+      booking.save();
+      orderId = booking._id;
+    });
+    // console.log(orderId);
+    return res.status(200).send({ bookingCode: bookingCode, orderId: orderId });
+  } catch (error) {
+    console.log("Booking Error: " + error);
+    res.status(502).send(error.response);
+  }
+});
+
+router.post("/payment", async (req, res) => {
+  const payload = req.body;
+  let paidTicket = await Booking.find({ bookingCode: payload.bookingCode });
+  console.log(paidTicket);
 });
 
 router.post("/booking/momo_ipn", async (req, res) => {
   const payload = req.body;
-  console.log(req.body);
-  console.log("It goes here");
-  const responseBody = {};
-  responseBody.partnerCode = payload.partnerCode;
-  responseBody.accessKey = payload.accessKey;
-  responseBody.requestId = payload.requestId;
-  responseBody.orderId = payload.orderId;
-  responseBody.errorCode = payload.errorCode;
-  responseBody.message = payload.message;
-  responseBody.extraData = payload.extraData;
-  responseBody.signature = payload.signature;
-  res.header({ "Content-Type": "application/json;charset=UTF-8" });
-  res.status(200).send(responseBody);
+  console.log("It goes here" + req.body);
+  // console.log("It goes here");
+  var rawSignature = `partnerCode=${payload.partnerCode}&accessKey=${payload.accessKey}&requestId=${payload.requestId}&amount=${payload.amount}&orderId=${payload.orderId}&orderInfo=${payload.orderInfo}&orderType=${payload.orderType}&transId=${payload.transId}&message=${payload.message}&localMessage=${payload.localMessage}&responseTime=${payload.responseTime}&errorCode=${payload.errorCode}&payType=${payload.payType}&extraData=${payload.extraData}`;
+  // console.log("--------------------RAW SIGNATURE----------------");
+  // console.log(rawSignature);
+  var signature = crypto
+    .createHmac("sha256", serectkey)
+    .update(rawSignature)
+    .digest("hex");
+  if (signature === payload.signature) {
+    const responseBody = {};
+    responseBody.partnerCode = payload.partnerCode;
+    responseBody.accessKey = payload.accessKey;
+    responseBody.requestId = payload.requestId;
+    responseBody.orderId = payload.orderId;
+    responseBody.errorCode = payload.errorCode;
+    responseBody.message = payload.message;
+    responseBody.extraData = payload.extraData;
+    responseBody.signature = payload.signature;
+    res.header({ "Content-Type": "application/json;charset=UTF-8" });
+    res.status(200).send(responseBody);
+
+    if (payload.errorCode === "0") {
+      let paidTicket = await Booking.findOne({ _id: responseBody.orderId });
+      if (paidTicket) {
+        let relevantTicket = await Booking.find({
+          bookingCode: paidTicket.bookingCode,
+        });
+        if (relevantTicket) console.log("Relevant Ticket: " + relevantTicket);
+      }
+    }
+
+    var io = req.app.get("socketIo");
+    var socketId = req.app.get("socketIoId");
+    io.to(socketId).emit("ipn", payload);
+  }
 });
 
 module.exports = router;

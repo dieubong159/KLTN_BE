@@ -7,9 +7,9 @@ const expiredTime = (h) => {
 };
 
 const bookingSchema = mongoose.Schema({
-  routeuDeparture: {
+  routeDeparture: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "RouteuDeparture",
+    ref: "RouteDeparture",
   },
   seatNumber: {
     type: String,
@@ -30,6 +30,7 @@ const bookingSchema = mongoose.Schema({
   bookingTime: { type: Date, default: Date.now() },
   bookingExpiredTime: { type: Date, default: expiredTime(5) },
   status: { type: mongoose.Schema.Types.ObjectId, ref: "Const" },
+  bookingCode: String,
 });
 
 mongoose.model("Booking", bookingSchema);
