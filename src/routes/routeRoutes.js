@@ -411,9 +411,6 @@ router.get('/find-routes', async (req, resp) => {
     let validRoute = [];
     for (let routeItem of allDetailRoutes) {
       let temp = groupNext(routeItem);
-      if (temp.length == 3 && temp[0][0].routeId == '5eecc971b30a3a1f0435cfc7' && temp[1][0].routeId == '5eecd5ef4b2b523e0c517540' && temp[2][0].routeId == '5eecd6d04b2b523e0c51754c') {
-        console.log('hit');
-      }
 
       let startTime = new Date(routeData.departureDate);
       startTime = moment(`${startTime.getFullYear()}-${startTime.getMonth() + 1}-${startTime.getDate()} 00:00:00`, "YYYY-MM-DD HH:mm:ss");
@@ -559,8 +556,13 @@ router.get('/find-routes', async (req, resp) => {
       return location.address;
     };
 
-    let getDeptAndEmptySeats = (routeId, vehicle) => {
-      let departure = departures.find(e => e.route.toString() == routeId && date == e.departureDate.getDate() && month == e.departureDate.getMonth() && year == departureDate.getFullYear());
+    let getDeptAndEmptySeats = (routeId, vehicle,dayStart) => {
+      let selectedDate = new Date(dayStart);
+      let date = selectedDate.getDate();
+      let month = selectedDate.getMonth();
+      let year = selectedDate.getFullYear();
+
+      let departure = departures.find(e => e.route.toString() == routeId && date == e.departureDate.getDate() && month == e.departureDate.getMonth() && year == e.departureDate.getFullYear());
       let totalSeats = vehicle.totalSeats;
       let depId = null, emptySeats = totalSeats;
       if (departure) {
@@ -611,7 +613,7 @@ router.get('/find-routes', async (req, resp) => {
       let endAddress = getLocation(routeDetail.endStation.stationStopId);
       
       let timeAndPrice = findTimeAndPrice(routeDetails, route, routeDetail.startStation.stationStopId, routeDetail.endStation.stationStopId);
-      let deptAndSeats = getDeptAndEmptySeats(route._id.toString(), route.vehicle);
+      let deptAndSeats = getDeptAndEmptySeats(route._id.toString(), route.vehicle, routeDetail.startTime.format('MM/DD/YYYY'));
 
       let typeVehicle = allConst.find(e => e._id.toString() == route.vehicle.type.toString());
 
@@ -729,7 +731,7 @@ router.get('/find-routes', async (req, resp) => {
     let month = selectedDate.getMonth() + 1;
     let year = selectedDate.getFullYear();
 
-    let departure = departures.find(e => e.route.toString() == prop && date == e.departureDate.getDate() && month == e.departureDate.getMonth() && year == departureDate.getFullYear());
+    let departure = departures.find(e => e.route.toString() == prop && date == e.departureDate.getDate() && month == e.departureDate.getMonth() && year == e.departureDate.getFullYear());
     let totalSeats = vehicle.totalSeats;
     let depId = null, emptySeats = totalSeats;
     if (departure) {
