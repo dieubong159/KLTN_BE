@@ -636,6 +636,20 @@ router.get("/find-routes", async (req, resp) => {
       };
     };
 
+    let findTimeToEndStation = (routeId, startStationId, endStationId, initTime) => {
+      let routeDetails = allRouteDetails.filter(e => e.route.toString() == routeId);
+      let startStation = routeDetails.find(e => e.station.stationStop.toString() == startStationId);
+      let endStation = routeDetails.find(e => e.station.stationStop.toString() == endStationId);
+
+      routeDetails = routeDetails.filter(e => e.orderRouteToStation > startStation.orderRouteToStation && e.orderRouteToStation <= endStation.orderRouteToStation);
+      let temp = moment(initTime.format("YYYY-MM-DD HH:mm:ss"), "YYYY-MM-DD HH:mm:ss");
+      for (let routeDetail of routeDetails) {
+        temp.add(routeDetail.timeArrivingToStation, 'hours');
+      }
+
+      return temp;
+    };
+
     let mapRouteToDataFinal = async (routeDetail, isFirstRoute = false) => {
       // Check first route
       let query = {
@@ -680,6 +694,9 @@ router.get("/find-routes", async (req, resp) => {
 
       let typeVehicle = allConst.find(e => e._id.toString() == route.vehicle.type.toString());
 
+      // Find time to end station
+      let endTime = findTimeToEndStation(routeDetail.routeId, routeDetail.startStation.stationStopId, routeDetail.endStation.stationStopId, routeDetail.startTime);
+
       if (dateToday == date && monthToday == month && yearToday == year) {
         let hourToday = today.getHours();
         let minuteToday = today.getMinutes();
@@ -700,6 +717,7 @@ router.get("/find-routes", async (req, resp) => {
         'startLocation': startAddress,
         'endLocation': endAddress,
         'startDay': routeDetail.startTime.format('DD-MM-YYYY HH:mm'),
+        'endDay': endTime.format('DD-MM-YYYY HH:mm'),
         'startTime': timeAndPrice.startHour.format('HH:mm'),
         'endTime': timeAndPrice.endHour.format('HH:mm'),
         'price': timeAndPrice.price,
@@ -717,7 +735,19 @@ router.get("/find-routes", async (req, resp) => {
           mapRoutes.push(await mapRouteToDataFinal(validRoute[i]));
         }
 
-        dataFinal.push(mapRoutes);
+        let endTime = moment(mapRoutes[mapRoutes.length - 1].endDay, 'DD-MM-YYYY HH:mm');
+        let startTime = moment(mapRoutes[0].startDay, 'DD-MM-YYYY HH:mm');
+
+        let diffTime = endTime.valueOf() - startTime.valueOf();
+        diffTime = moment.duration(diffTime, 'milliseconds').asDays();
+
+        let totalPrice = mapRoutes.reduce((a, b) => a + b['price'], 0);
+
+        dataFinal.push({
+          totalTime: diffTime,
+          totalPrice: totalPrice,
+          routes: mapRoutes
+        });
       }
     }
 
@@ -863,23 +893,44 @@ router.get("/find-routes", async (req, resp) => {
     }
 
     if (valid) {
-      dataFinal.push([{
-        '_id': prop,
-        'vehicle': vehicle,
-        'typeVehicle' : typeVehicle,
-        'agentName' : agent.name,
-        'startLocation': startAddress,
-        'endLocation': endAddress,
-        'startTime': startHour.format('HH:mm'),
-        'endTime': endHour.format('HH:mm'),
-        'price': (disEndLength - disStartLength) * pricePerKm,
-        'departureId': depId,
-        'emptySeats': emptySeats
-      }]);
+      dataFinal.push({
+        totalTime: moment.duration(endHour.valueOf() - startHour.valueOf(), 'milliseconds').asDays(),
+        totalPrice: (disEndLength - disStartLength) * pricePerKm,
+        routes: [{
+          '_id': prop,
+          'vehicle': vehicle,
+          'typeVehicle' : typeVehicle,
+          'agentName' : agent.name,
+          'startLocation': startAddress,
+          'endLocation': endAddress,
+          'startTime': startHour.format('HH:mm'),
+          'endTime': endHour.format('HH:mm'),
+          'price': (disEndLength - disStartLength) * pricePerKm,
+          'departureId': depId,
+          'emptySeats': emptySeats
+        }]
+      });
     }
   }
 
   return resp.send(dataFinal);
+});
+
+router.get('/testtime', (req, resp) => {
+  const format = 'YYYY-MM-DD HH:mm';
+  let a = moment('2020-07-08 00:00', format);
+  let b = moment('2020-07-08 12:00', format);
+
+  let c = b.valueOf() - a.valueOf();
+
+  resp.send({
+    a: a.format(format),
+    b: b.format(format),
+    a_mili: a.valueOf(),
+    b_mili: b.valueOf(),
+    c_mili: c,
+    c: moment.duration(c, 'milliseconds').asDays()
+  })
 });
 
 router.get("/route/:route_id", async (req, res) => {
