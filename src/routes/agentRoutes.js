@@ -7,10 +7,55 @@ const Map = mongoose.model("Map");
 const Const = mongoose.model("Const");
 const AgentDetail = mongoose.model("AgentDetail");
 const Location = mongoose.model("Location");
+const ManagementAdmin = mongoose.model("ManagementAdmin");
 
-router.get("/agent", async (req, res) => {
+let getAgentForAdmin = async (adminId) =>{
+  let adminMmgs = await ManagementAdmin.find();
+  let agents = adminMmgs.filter(e => e.admin.toString() == adminId && e.agent !== null);
+  if (agents.length == 0) {
+    agents = adminMmgs;
+  }
+  agents = agents.filter(e => e.agent).map(e => e.agent.toString());
+
+  return [...new Set(agents)];
+};
+
+let getAgentForAdminRoot = async (adminId) =>{
+  let adminMmgs = await ManagementAdmin.find();
+  let agents = adminMmgs.filter(e => e.admin.toString() == adminId && e.agent !== null && e.isroot);
+  if (agents.length == 0) {
+    agents = adminMmgs;
+  }
+  agents = agents.filter(e => e.agent).map(e => e.agent.toString());
+
+  return [...new Set(agents)];
+};
+
+
+router.get("/agent-by-admin/:admin_id", async (req, res) => {
   const agents = await Agent.find();
-  res.status(200).send(agents);
+  let agentForAdminIds = await getAgentForAdmin(req.params.admin_id);
+
+  let results = [];
+  for (let agent of agents) {
+    if (agentForAdminIds.some(e => e == agent._id.toString())) {
+      results.push(agent);
+    }
+  }
+  res.status(200).send(results);
+});
+
+router.get("/agent-by-adminroot/:admin_id", async (req, res) => {
+  const agents = await Agent.find();
+  let agentForAdminIds = await getAgentForAdminRoot(req.params.admin_id);
+
+  let results = [];
+  for (let agent of agents) {
+    if (agentForAdminIds.some(e => e == agent._id.toString())) {
+      results.push(agent);
+    }
+  }
+  res.status(200).send(results);
 });
 
 // router.get("/agent/:agent_id", async (req, res) => {

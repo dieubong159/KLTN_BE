@@ -8,6 +8,25 @@ const Admin = mongoose.model("Admin");
 const ManagementAdmin = mongoose.model("ManagementAdmin");
 const Agent = mongoose.model("Agent");
 
+
+let getAgentForAdmin = async (adminId) =>{
+  let adminMmgs = await ManagementAdmin.find();
+  let agents = adminMmgs.filter(e => e.admin.toString() == adminId && e.agent !== null && e.isroot);
+  if (agents.length == 0) {
+    agents = adminMmgs;
+  }
+  agents = agents.filter(e => e.agent).map(e => e.agent.toString());
+
+  return [...new Set(agents)];
+};
+
+let getSubAdmins = async (adminId) => {
+  let adminMmgs = await ManagementAdmin.find();
+  let agents = await getAgentForAdmin(adminId);
+  let admins = adminMmgs.filter(e => e.agent && agents.some(i => i == e.agent.toString())).map(e => e.admin.toString());
+  return await Admin.find({ _id: { '$in': admins } });
+};
+
 router.post("/admin", async (req, res, next) => {
   const admin = new Admin(req.body);
   if (!admin.isModified("password")) {
@@ -49,9 +68,8 @@ router.get("/admin/:admin_id", async (req, res) => {
   });
 });
 
-router.get("/admin", async (req, res) => {
-  var listAdmin = await Admin.find();
-  res.status(200).send(listAdmin);
+router.get("/admin-by-agent/:admin_id", async (req, res) => {
+  res.send(await getSubAdmins(req.params.admin_id));
 });
 
 router.patch("/admin/:admin_id", async (req, res, next) => {
@@ -111,9 +129,12 @@ router.post("/admin/signin", async (req, res) => {
       .send({ error: "Must provide username and password" });
   }
 
-  const admin = await Admin.findOne({ username });
+  let admins =  await Admin.find();
+  let admin = admins.find(e=>e.username == username || e.email == username);
   if (!admin) {
-    return res.status(422).send({ error: "Invalid password or username" });
+    if(!admin){
+      return res.status(422).send({ error: "Invalid password or username" });
+    }
   }
 
   try {
