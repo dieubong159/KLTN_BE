@@ -23,7 +23,8 @@ const agentSchema = mongoose.Schema({
     type: Number,
   },
   reviews: {
-    type: [ReviewSchema],
+    type: [mongoose.Schema.Types.ObjectId],
+    ref: "Review",
     default: undefined,
   },
 });
