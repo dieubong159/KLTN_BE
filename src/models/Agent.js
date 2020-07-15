@@ -1,32 +1,50 @@
 const mongoose = require("mongoose");
 
+const ReviewSchema = mongoose.Schema({
+  rating: {
+    type: Number,
+    required: true,
+  },
+  comment: {
+    type: String,
+  },
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+  },
+});
+
 const agentSchema = mongoose.Schema({
   name: { type: String },
   cancelfee: {
-    type: Number
+    type: Number,
   },
-  priceToDistance:{
-    type:Number
-  }
+  priceToDistance: {
+    type: Number,
+  },
+  reviews: {
+    type: [ReviewSchema],
+    default: undefined,
+  },
 });
 
 const agentDetailSchema = mongoose.Schema({
   agent: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "Agent"
+    ref: "Agent",
   },
   phonenumber: {
-    type: Number
+    type: Number,
   },
   location: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "Location"
+    ref: "Location",
   },
-  isMain:{
-    type: Number
-  }
+  isMain: {
+    type: Number,
+  },
 });
 
+mongoose.model("Review", ReviewSchema);
 mongoose.model("Agent", agentSchema);
 mongoose.model("AgentDetail", agentDetailSchema);
-

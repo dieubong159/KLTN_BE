@@ -19,7 +19,7 @@ var accessKey = "6pnCTPbCaPV5wew2";
 var serectkey = "ZmdAGeuX53DbdXPGrrISDEzRngk2QRwg";
 var orderInfo = "Thanh toán bằng Momo";
 // var returnUrl = "";
-var notifyurl = "https://507433a30f5f.ngrok.io/booking/momo_ipn";
+var notifyurl = "https://5947eba45346.ngrok.io/booking/momo_ipn";
 var requestType = "captureMoMoWallet";
 var extraData = "";
 
@@ -144,6 +144,30 @@ router.get("/booking", async (req, res) => {
   res.status(200).send(routes);
 });
 
+router.get("/booking/:userId", async (req, res) => {
+  const userId = req.params.userId;
+  try {
+    const booking = await Booking.find({ user: userId })
+      .populate("status")
+      .populate({
+        path: "routeDeparture",
+        populate: {
+          path: "route",
+          model: "Route",
+          populate: {
+            path: "startLocation endLocation vehicle",
+            populate: { path: "type agent" },
+          },
+        },
+      });
+    if (booking) {
+      res.status(200).send(booking);
+    }
+  } catch (error) {
+    res.send(error);
+  }
+});
+
 router.post("/booking", async (req, res, next) => {
   const payload = req.body;
 
@@ -163,22 +187,7 @@ router.post("/booking", async (req, res, next) => {
     departureId = routeDeparture._id;
   }
 
-  var validroute = mongoose.Types.ObjectId.isValid(departureId);
-
-  // if (validroute) {
-  //   const routeDepartureExist = await RouteDeparture.exists({
-  //     _id: payload.departureId,
-  //   });
-  //   if (!routeDepartureExist) {
-  //     res.status(500).json({
-  //       error: "Route not exist",
-  //     });
-  //   }
-  // } else {
-  //   res.status(500).json({
-  //     error: "Not a valid ID",
-  //   });
-  // }
+  // var validroute = mongoose.Types.ObjectId.isValid(departureId);
 
   var constSeats = await Const.findOne({
     type: "trang_thai_ghe",
@@ -227,12 +236,6 @@ router.post("/booking", async (req, res, next) => {
   }
 });
 
-router.post("/payment", async (req, res) => {
-  const payload = req.body;
-  let paidTicket = await Booking.find({ bookingCode: payload.bookingCode });
-  console.log(paidTicket);
-});
-
 router.post("/booking/momo_ipn", async (req, res) => {
   const payload = req.body;
   console.log("It goes here" + req.body);
@@ -245,6 +248,9 @@ router.post("/booking/momo_ipn", async (req, res) => {
     .update(rawSignature)
     .digest("hex");
   if (signature === payload.signature) {
+    // var io = req.app.get("socketIo");
+    // var socketId = req.app.get("socketIoId");
+    // io.to(socketId).emit("ipn", payload);
     const responseBody = {};
     responseBody.partnerCode = payload.partnerCode;
     responseBody.accessKey = payload.accessKey;
@@ -257,19 +263,15 @@ router.post("/booking/momo_ipn", async (req, res) => {
     res.header({ "Content-Type": "application/json;charset=UTF-8" });
     res.status(200).send(responseBody);
 
-    if (payload.errorCode === "0") {
-      let paidTicket = await Booking.findOne({ _id: responseBody.orderId });
-      if (paidTicket) {
-        let relevantTicket = await Booking.find({
-          bookingCode: paidTicket.bookingCode,
-        });
-        if (relevantTicket) console.log("Relevant Ticket: " + relevantTicket);
-      }
-    }
-
-    var io = req.app.get("socketIo");
-    var socketId = req.app.get("socketIoId");
-    io.to(socketId).emit("ipn", payload);
+    // if (payload.errorCode === "0") {
+    //   let paidTicket = await Booking.findOne({ _id: responseBody.orderId });
+    //   if (paidTicket) {
+    //     let relevantTicket = await Booking.find({
+    //       bookingCode: paidTicket.bookingCode,
+    //     });
+    //     if (relevantTicket) console.log("Relevant Ticket: " + relevantTicket);
+    //   }
+    // }
   }
 });
 

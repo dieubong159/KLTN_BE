@@ -7,6 +7,8 @@ const Map = mongoose.model("Map");
 const Const = mongoose.model("Const");
 const AgentDetail = mongoose.model("AgentDetail");
 const Location = mongoose.model("Location");
+const User = mongoose.model("User");
+const Review = mongoose.model("Review");
 
 router.get("/agent", async (req, res) => {
   const agents = await Agent.find();
@@ -21,16 +23,50 @@ router.get("/agent", async (req, res) => {
 //   // });
 // });
 
+router.get("/agent/review", async (req, res) => {
+  const agentId = req.params;
+  const agent = await Agent.findById(agentId);
+  if (agent) {
+    res.status(200).send({ reviews: agent.reviews });
+  }
+});
+
+router.post("/agent/review", async (req, res) => {
+  const payload = req.body;
+  const user = await User.findById(payload.user);
+  const agent = await Agent.findById(payload.agent);
+
+  if (user && agent) {
+    try {
+      const review = new Review({
+        user: payload.user,
+        rating: payload.rate,
+        comment: payload.review,
+      });
+      Agent.findOneAndUpdate(
+        { _id: agent._id },
+        { $push: { reviews: review } },
+        { upsert: false },
+        function (err, doc) {
+          if (err) return res.send(500, { error: err });
+          return res.send(doc);
+        }
+      );
+      // res.status(200).send({ message: "Review successfully" });
+    } catch (error) {
+      console.log(error);
+      res.send(error);
+    }
+  }
+});
+
 router.get("/agent/addAgentData", async (req, res) => {
-  var vehicleAndOrderTypes = await Const.find({ 
-    $or: [
-      { type: "loai_xe" },
-      { type: "kieu_xep_loai_danh_so" }
-    ]
+  var vehicleAndOrderTypes = await Const.find({
+    $or: [{ type: "loai_xe" }, { type: "kieu_xep_loai_danh_so" }],
   });
-  res.send({ 
-    vehicleAndOrderTypes: vehicleAndOrderTypes
-   });
+  res.send({
+    vehicleAndOrderTypes: vehicleAndOrderTypes,
+  });
 });
 
 router.post("/agent", async (req, res) => {
@@ -53,113 +89,110 @@ router.post("/agent/addagent", async (req, res) => {
 
   const agent = new Agent({
     name: data.name,
-    cancelfee : data.cancelfee
+    cancelfee: data.cancelfee,
   });
 
   const locationFrom = new Location({
-    address : data.locationFrom,
-    coords:{
+    address: data.locationFrom,
+    coords: {
       latitude: data.latitudeLocationFrom,
-      longtitude: data.longitudeLocationFrom
-    }
+      longtitude: data.longitudeLocationFrom,
+    },
   });
 
   const locationTo = new Location({
-    address : data.locationTo,
-    coords:{
+    address: data.locationTo,
+    coords: {
       latitude: data.latitudeLocationTo,
-      longtitude: data.longitudeLocationTo
-    }
+      longtitude: data.longitudeLocationTo,
+    },
   });
 
   const agentDetailFrom = new AgentDetail({
-    phonenumber:data.phoneFrom,
-    location:locationFrom._id,
+    phonenumber: data.phoneFrom,
+    location: locationFrom._id,
     agent: agent._id,
-    isMain: 1
+    isMain: 1,
   });
 
-  const agentDetailTo= new AgentDetail({
-    phonenumber:data.phoneTo,
-    location:locationTo._id,
+  const agentDetailTo = new AgentDetail({
+    phonenumber: data.phoneTo,
+    location: locationTo._id,
     agent: agent._id,
-    isMain: 1
+    isMain: 1,
   });
 
   const mapXeThuong = new Map({
     agent: agent._id,
     type: data.mapTypeXeThuong,
-    width:data.mapWidthXeThuong,
+    width: data.mapWidthXeThuong,
     height: data.mapHeightXeThuong,
-    orderType: data.orderTypeXeThuong
+    orderType: data.orderTypeXeThuong,
   });
 
   const mapXeGiuong = new Map({
     agent: agent._id,
     type: data.mapTypeXeGiuong,
-    width:data.mapWidthXeGiuong,
+    width: data.mapWidthXeGiuong,
     height: data.mapHeightXeGiuong,
-    orderType: data.orderTypeXeGiuong
+    orderType: data.orderTypeXeGiuong,
   });
 
   // bat dau save()
   agent.save();
 
   var locationFromcheck = await Location.findOne({
-    coords:{
+    coords: {
       latitude: locationFrom.coords.latitude,
-      longtitude: locationFrom.coords.longtitude
-    }
+      longtitude: locationFrom.coords.longtitude,
+    },
   });
-  if(locationFromcheck){
+  if (locationFromcheck) {
     agentDetailFrom.location = locationFromcheck._id;
-  }
-  else{
+  } else {
     locationFrom.save();
   }
   await agentDetailFrom.save();
 
   var locationTocheck = await Location.findOne({
-    coords:{
+    coords: {
       latitude: locationTo.coords.latitude,
-      longtitude: locationTo.coords.longtitude
-    }
+      longtitude: locationTo.coords.longtitude,
+    },
   });
-  if(locationTocheck){
-    agentDetailTo.location = locationTocheck._id
-  }
-  else{
+  if (locationTocheck) {
+    agentDetailTo.location = locationTocheck._id;
+  } else {
     locationTo.save();
   }
   await agentDetailTo.save();
 
   let length = data.locationAddNew.length;
-  for(let i = 0;i<length;i++){
+  for (let i = 0; i < length; i++) {
     const locationNew = new Location({
-      address : data.locationAddNew[i],
-      coords:{
+      address: data.locationAddNew[i],
+      coords: {
         latitude: data.latitudeLocationAddNew[i],
-        longtitude: data.longitudeLocationAddNew[i]
-      }
+        longtitude: data.longitudeLocationAddNew[i],
+      },
     });
-  
+
     const agentDetailNew = new AgentDetail({
-      phonenumber:data.phoneAddNew[i],
-      location:locationNew._id,
+      phonenumber: data.phoneAddNew[i],
+      location: locationNew._id,
       agent: agent._id,
-      isMain: 0
+      isMain: 0,
     });
 
     var locationNewcheck = await Location.findOne({
-      coords:{
+      coords: {
         latitude: locationNew.coords.latitude,
-        longtitude: locationNew.coords.longtitude
-      }
+        longtitude: locationNew.coords.longtitude,
+      },
     });
-    if(locationNewcheck){
-      agentDetailNew.location = locationNewcheck._id
-    }
-    else{
+    if (locationNewcheck) {
+      agentDetailNew.location = locationNewcheck._id;
+    } else {
       locationNew.save();
     }
     await agentDetailNew.save();

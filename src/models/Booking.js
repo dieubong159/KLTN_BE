@@ -28,9 +28,13 @@ const bookingSchema = mongoose.Schema({
   },
   price: { type: Number },
   bookingTime: { type: Date, default: Date.now() },
-  bookingExpiredTime: { type: Date, default: expiredTime(5) },
+  bookingExpiredTime: { type: Date, default: expiredTime(18) },
   status: { type: mongoose.Schema.Types.ObjectId, ref: "Const" },
   bookingCode: String,
+  cancelDate: {
+    type: Date,
+    default: undefined,
+  },
 });
 
 mongoose.model("Booking", bookingSchema);
