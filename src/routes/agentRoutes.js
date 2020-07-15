@@ -11,28 +11,31 @@ const User = mongoose.model("User");
 const Review = mongoose.model("Review");
 const ManagementAdmin = mongoose.model("ManagementAdmin");
 
-let getAgentForAdmin = async (adminId) =>{
+let getAgentForAdmin = async (adminId) => {
   let adminMmgs = await ManagementAdmin.find();
-  let agents = adminMmgs.filter(e => e.admin.toString() == adminId && e.agent !== null);
+  let agents = adminMmgs.filter(
+    (e) => e.admin.toString() == adminId && e.agent !== null
+  );
   if (agents.length == 0) {
     agents = adminMmgs;
   }
-  agents = agents.filter(e => e.agent).map(e => e.agent.toString());
+  agents = agents.filter((e) => e.agent).map((e) => e.agent.toString());
 
   return [...new Set(agents)];
 };
 
-let getAgentForAdminRoot = async (adminId) =>{
+let getAgentForAdminRoot = async (adminId) => {
   let adminMmgs = await ManagementAdmin.find();
-  let agents = adminMmgs.filter(e => e.admin.toString() == adminId && e.agent !== null && e.isroot);
+  let agents = adminMmgs.filter(
+    (e) => e.admin.toString() == adminId && e.agent !== null && e.isroot
+  );
   if (agents.length == 0) {
     agents = adminMmgs;
   }
-  agents = agents.filter(e => e.agent).map(e => e.agent.toString());
+  agents = agents.filter((e) => e.agent).map((e) => e.agent.toString());
 
   return [...new Set(agents)];
 };
-
 
 router.get("/agent-by-admin/:admin_id", async (req, res) => {
   const agents = await Agent.find();
@@ -40,7 +43,7 @@ router.get("/agent-by-admin/:admin_id", async (req, res) => {
 
   let results = [];
   for (let agent of agents) {
-    if (agentForAdminIds.some(e => e == agent._id.toString())) {
+    if (agentForAdminIds.some((e) => e == agent._id.toString())) {
       results.push(agent);
     }
   }
@@ -53,7 +56,7 @@ router.get("/agent-by-adminroot/:admin_id", async (req, res) => {
 
   let results = [];
   for (let agent of agents) {
-    if (agentForAdminIds.some(e => e == agent._id.toString())) {
+    if (agentForAdminIds.some((e) => e == agent._id.toString())) {
       results.push(agent);
     }
   }
@@ -88,12 +91,13 @@ router.post("/agent/review", async (req, res) => {
         rating: payload.rate,
         comment: payload.review,
       });
+      review.save();
       Agent.findOneAndUpdate(
         { _id: agent._id },
-        { $push: { reviews: review } },
+        { $push: { reviews: review._id } },
         { upsert: false },
         function (err, doc) {
-          if (err) return res.send(500, { error: err });
+          if (err) return res.status(500).send({ error: err });
           return res.send(doc);
         }
       );

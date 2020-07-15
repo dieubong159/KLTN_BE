@@ -22,11 +22,13 @@ const agentSchema = mongoose.Schema({
   priceToDistance: {
     type: Number,
   },
-  reviews: {
-    type: [mongoose.Schema.Types.ObjectId],
-    ref: "Review",
-    default: undefined,
-  },
+  reviews: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Review",
+      default: undefined,
+    },
+  ],
 });
 
 const agentDetailSchema = mongoose.Schema({

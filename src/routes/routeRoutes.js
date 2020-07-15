@@ -15,7 +15,6 @@ const ManagementAdmin = mongoose.model("ManagementAdmin");
 const Const = mongoose.model("Const");
 const AgentDetail = mongoose.model("AgentDetail");
 
-
 const router = express.Router();
 
 router.get("/route/query", async (req, res) => {
@@ -61,42 +60,43 @@ var byOrder = (a, b) => {
   return 0;
 };
 
-let getAgentForAdmin = async (adminId) =>{
+let getAgentForAdmin = async (adminId) => {
   let adminMmgs = await ManagementAdmin.find();
-  let agents = adminMmgs.filter(e => e.admin.toString() == adminId && e.agent !== null);
+  let agents = adminMmgs.filter(
+    (e) => e.admin.toString() == adminId && e.agent !== null
+  );
   if (agents.length == 0) {
     agents = adminMmgs;
   }
-  agents = agents.filter(e => e.agent).map(e => e.agent.toString());
+  agents = agents.filter((e) => e.agent).map((e) => e.agent.toString());
 
   return [...new Set(agents)];
 };
 
 router.get("/route-by-agent/:admin_id", async (req, res) => {
-    const routes = await Route.find()
-      .populate("startLocation")
-      .populate("endLocation")
-      .populate("startProvince")
-      .populate("endProvince")
-      .populate("status")
-      .populate({
-        path: "vehicle",
-        model: "Vehicle",
-        populate: {
-          path:
-            "startLocation endLocation startProvince endProvince agent type",
-        },
-      });
+  const routes = await Route.find()
+    .populate("startLocation")
+    .populate("endLocation")
+    .populate("startProvince")
+    .populate("endProvince")
+    .populate("status")
+    .populate({
+      path: "vehicle",
+      model: "Vehicle",
+      populate: {
+        path: "startLocation endLocation startProvince endProvince agent type",
+      },
+    });
 
-      let agentForAdminIds = await getAgentForAdmin(req.params.admin_id);
+  let agentForAdminIds = await getAgentForAdmin(req.params.admin_id);
 
-      let results = [];
-      for (let route of routes) {
-        if (agentForAdminIds.some(e => e == route.vehicle.agent._id.toString())) {
-          results.push(route);
-        }
-      }
-    res.status(200).send(results);
+  let results = [];
+  for (let route of routes) {
+    if (agentForAdminIds.some((e) => e == route.vehicle.agent._id.toString())) {
+      results.push(route);
+    }
+  }
+  res.status(200).send(results);
 });
 
 router.get("/find-routes", async (req, resp) => {
@@ -111,7 +111,14 @@ router.get("/find-routes", async (req, resp) => {
   let dataFinal = [];
   let allRoute = await Route.find();
   let allRouteDetails = await RouteDetail.find().populate("station");
-  let allAgents = await Agent.find();
+  let allAgents = await Agent.find().populate({
+    path: "reviews",
+    model: "Review",
+    populate: {
+      path: "user",
+      model: "User",
+    },
+  });
   let allAgentDetails = await AgentDetail.find().populate("location");
   let departures = await RouteDeparture.find();
   let allBookings = await Booking.find();
@@ -119,14 +126,33 @@ router.get("/find-routes", async (req, resp) => {
   let allConst = await Const.find();
   let allSchedules = await RouteSchedule.find();
 
-  var seatStatusUnavailable = await Const.findOne({ type: "trang_thai_ghe", value: "da_dat" });
-  var seatStatusPlaceholder = await Const.findOne({ type: "trang_thai_ghe", value: "giu_cho" });
-  var statusBookingRemove = await Const.findOne({type:"trang_thai_dat_cho", value: "da_huy"});
+  var seatStatusUnavailable = await Const.findOne({
+    type: "trang_thai_ghe",
+    value: "da_dat",
+  });
+  var seatStatusPlaceholder = await Const.findOne({
+    type: "trang_thai_ghe",
+    value: "giu_cho",
+  });
+  var statusBookingRemove = await Const.findOne({
+    type: "trang_thai_dat_cho",
+    value: "da_huy",
+  });
 
-  let routeDetailByStartLocs = allRouteDetails.filter(e => e.station.stationStop == routeData.startLocation || e.station.province == routeData.startLocation);
-  let routes = routeDetailByStartLocs.map(e => e.route);
-  let routeDetails = routes.flatMap(e => allRouteDetails.filter(i => i.route.toString() == e.toString()));
-  let routeDetailByEndLocs = routeDetails.filter(e => e.station.stationStop == routeData.endLocation || e.station.province == routeData.endLocation);
+  let routeDetailByStartLocs = allRouteDetails.filter(
+    (e) =>
+      e.station.stationStop == routeData.startLocation ||
+      e.station.province == routeData.startLocation
+  );
+  let routes = routeDetailByStartLocs.map((e) => e.route);
+  let routeDetails = routes.flatMap((e) =>
+    allRouteDetails.filter((i) => i.route.toString() == e.toString())
+  );
+  let routeDetailByEndLocs = routeDetails.filter(
+    (e) =>
+      e.station.stationStop == routeData.endLocation ||
+      e.station.province == routeData.endLocation
+  );
   if (routeDetailByEndLocs.length == 0) {
     let condition = (e) =>
       e.station.stationStop == routeData.startLocation ||
@@ -639,15 +665,17 @@ router.get("/find-routes", async (req, resp) => {
       );
       let pricePerKm = agent.priceToDistance;
 
-      let agentDetails = allAgentDetails.filter(e=>e.agent.toString() == vehicle.agent.toString());
+      let agentDetails = allAgentDetails.filter(
+        (e) => e.agent.toString() == vehicle.agent.toString()
+      );
 
       return {
         startHour: startHour,
         endHour: endHour,
         price: (disEndLength - disStartLength) * pricePerKm,
-        agent : agent,
-        agentDetails : agentDetails
-      }
+        agent: agent,
+        agentDetails: agentDetails,
+      };
     };
 
     let getLocation = (locationId) => {
@@ -673,9 +701,13 @@ router.get("/find-routes", async (req, resp) => {
         emptySeats = totalSeats;
       if (departure) {
         depId = departure._id.toString();
-        let bookedSeats = allBookings.filter((e) =>
-          e.routeDeparture.toString() == departure._id.toString() &&  e.status.toString() != statusBookingRemove._id.toString() && 
-          (e.seatStatus.toString() == seatStatusUnavailable._id.toString() || e.seatStatus.toString() == seatStatusPlaceholder._id.toString())).length;
+        let bookedSeats = allBookings.filter(
+          (e) =>
+            e.routeDeparture.toString() == departure._id.toString() &&
+            e.status.toString() != statusBookingRemove._id.toString() &&
+            (e.seatStatus.toString() == seatStatusUnavailable._id.toString() ||
+              e.seatStatus.toString() == seatStatusPlaceholder._id.toString())
+        ).length;
         emptySeats = totalSeats - bookedSeats;
       }
 
@@ -793,20 +825,20 @@ router.get("/find-routes", async (req, resp) => {
       }
 
       return {
-        '_id': route._id.toString(),
-        'vehicle': route.vehicle,
-        'typeVehicle' : typeVehicle,
-        'agent': timeAndPrice.agent,
-        'agentDetails' : timeAndPrice.agentDetails,
-        'startLocation': startAddress,
-        'endLocation': endAddress,
-        'startDay': routeDetail.startTime.format('DD-MM-YYYY HH:mm'),
-        'endDay': endTime.format('DD-MM-YYYY HH:mm'),
-        'startTime': timeAndPrice.startHour.format('HH:mm'),
-        'endTime': timeAndPrice.endHour.format('HH:mm'),
-        'price': timeAndPrice.price,
-        'departureId': deptAndSeats.depId,
-        'emptySeats': deptAndSeats.emptySeats
+        _id: route._id.toString(),
+        vehicle: route.vehicle,
+        typeVehicle: typeVehicle,
+        agent: timeAndPrice.agent,
+        agentDetails: timeAndPrice.agentDetails,
+        startLocation: startAddress,
+        endLocation: endAddress,
+        startDay: routeDetail.startTime.format("DD-MM-YYYY HH:mm"),
+        endDay: endTime.format("DD-MM-YYYY HH:mm"),
+        startTime: timeAndPrice.startHour.format("HH:mm"),
+        endTime: timeAndPrice.endHour.format("HH:mm"),
+        price: timeAndPrice.price,
+        departureId: deptAndSeats.depId,
+        emptySeats: deptAndSeats.emptySeats,
       };
     };
 
@@ -954,7 +986,9 @@ router.get("/find-routes", async (req, resp) => {
     );
     let pricePerKm = agent.priceToDistance;
 
-    let agentDetails = allAgentDetails.filter(e=>e.agent.toString()== vehicle.agent.toString());
+    let agentDetails = allAgentDetails.filter(
+      (e) => e.agent.toString() == vehicle.agent.toString()
+    );
 
     let selectedDate = new Date(routeData.departureDate);
     let date = selectedDate.getDate();
@@ -973,9 +1007,13 @@ router.get("/find-routes", async (req, resp) => {
       emptySeats = totalSeats;
     if (departure) {
       depId = departure._id.toString();
-      let bookedSeats = allBookings.filter((e) =>
-          e.routeDeparture.toString() == departure._id.toString() && e.status.toString() != statusBookingRemove._id.toString() && 
-          (e.seatStatus.toString() == seatStatusUnavailable._id.toString() || e.seatStatus.toString() == seatStatusPlaceholder._id.toString())).length;
+      let bookedSeats = allBookings.filter(
+        (e) =>
+          e.routeDeparture.toString() == departure._id.toString() &&
+          e.status.toString() != statusBookingRemove._id.toString() &&
+          (e.seatStatus.toString() == seatStatusUnavailable._id.toString() ||
+            e.seatStatus.toString() == seatStatusPlaceholder._id.toString())
+      ).length;
       emptySeats = totalSeats - bookedSeats;
     }
 
@@ -998,20 +1036,22 @@ router.get("/find-routes", async (req, resp) => {
           .duration(endHour.valueOf() - startHour.valueOf(), "milliseconds")
           .asDays(),
         totalPrice: (disEndLength - disStartLength) * pricePerKm,
-        routes: [{
-          '_id': prop,
-          'vehicle': vehicle,
-          'typeVehicle' : typeVehicle,
-          'agent' : agent,
-          'agentDetails': agentDetails,
-          'startLocation': startAddress,
-          'endLocation': endAddress,
-          'startTime': startHour.format('HH:mm'),
-          'endTime': endHour.format('HH:mm'),
-          'price': (disEndLength - disStartLength) * pricePerKm,
-          'departureId': depId,
-          'emptySeats': emptySeats
-        }]
+        routes: [
+          {
+            _id: prop,
+            vehicle: vehicle,
+            typeVehicle: typeVehicle,
+            agent: agent,
+            agentDetails: agentDetails,
+            startLocation: startAddress,
+            endLocation: endAddress,
+            startTime: startHour.format("HH:mm"),
+            endTime: endHour.format("HH:mm"),
+            price: (disEndLength - disStartLength) * pricePerKm,
+            departureId: depId,
+            emptySeats: emptySeats,
+          },
+        ],
       });
     }
   }
@@ -1160,19 +1200,19 @@ router.patch("/route/:route_id", async (req, res) => {
   });
 });
 
-
 router.get("/routeDeparture-by-agent/:admin_id", async (req, res) => {
-    const routeDepartures = await RouteDeparture.find()
+  const routeDepartures = await RouteDeparture.find()
     .populate({
       path: "route",
       model: "Route",
-      populate:{
-        path: "startLocation endLocation startProvince endProvince status vehicle",
+      populate: {
+        path:
+          "startLocation endLocation startProvince endProvince status vehicle",
         populate: {
           path:
             "startLocation endLocation startProvince endProvince agent type",
-        }
-      }
+        },
+      },
     })
     .populate({
       path: "routeSchedule",
@@ -1180,31 +1220,36 @@ router.get("/routeDeparture-by-agent/:admin_id", async (req, res) => {
       populate: {
         path: "route",
         model: "Route",
-        populate:{
-          path: "startLocation endLocation startProvince endProvince status vehicle",
+        populate: {
+          path:
+            "startLocation endLocation startProvince endProvince status vehicle",
           populate: {
             path:
               "startLocation endLocation startProvince endProvince agent type",
-          }
-        }
-      }
+          },
+        },
+      },
     });
-    let agentForAdminIds = await getAgentForAdmin(req.params.admin_id);
+  let agentForAdminIds = await getAgentForAdmin(req.params.admin_id);
 
-    let results = [];
-    for (let routeDeparture of routeDepartures) {
-      if (agentForAdminIds.some(e => e == routeDeparture.route.vehicle.agent._id.toString())) {
-        results.push(routeDeparture);
-      }
+  let results = [];
+  for (let routeDeparture of routeDepartures) {
+    if (
+      agentForAdminIds.some(
+        (e) => e == routeDeparture.route.vehicle.agent._id.toString()
+      )
+    ) {
+      results.push(routeDeparture);
     }
-    res.status(200).send(results);
+  }
+  res.status(200).send(results);
 });
 
 router.get("/listbooking/:routeDeparture_id", async (req, res) => {
-  var query = { routeDeparture : req.params.routeDeparture_id };
+  var query = { routeDeparture: req.params.routeDeparture_id };
   const listbooking = await Booking.find(query)
-  .populate("seatStatus")
-  .populate("status");
+    .populate("seatStatus")
+    .populate("status");
   res.status(200).send(listbooking);
 });
 
