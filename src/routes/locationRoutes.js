@@ -21,7 +21,6 @@ router.get("/location/:location_id", async (req, res) => {
 
 router.post("/location", async (req, res) => {
   const data = req.body;
-  console.log(req.body);
   const location = new Location({
     address: data.address,
     coords: {
@@ -35,7 +34,6 @@ router.post("/location", async (req, res) => {
       longtitude: location.coords.longtitude,
     },
   });
-  console.log(locationcheck);
   if (locationcheck) {
     return res.status(422).send({ error: "You must provide an address" });
   } else {

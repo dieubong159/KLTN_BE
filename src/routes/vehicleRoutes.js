@@ -8,11 +8,23 @@ const Location = mongoose.model("Location");
 const SeatMap = mongoose.model("SeatMap");
 const Map = mongoose.model("Map");
 const Station = mongoose.model("Station");
+const ManagementAdmin = mongoose.model("ManagementAdmin");
 
 const router = express.Router();
 
-router.get("/vehicle", async (req, res) => {
-  const routes = await Vehicle.find()
+let getAgentForAdmin = async (adminId) =>{
+  let adminMmgs = await ManagementAdmin.find();
+  let agents = adminMmgs.filter(e => e.admin.toString() == adminId && e.agent !== null);
+  if (agents.length == 0) {
+    agents = adminMmgs;
+  }
+  agents = agents.filter(e => e.agent).map(e => e.agent.toString());
+
+  return [...new Set(agents)];
+};
+
+router.get("/vehicle-by-agent/:admin_id", async (req, res) => {
+  const vehicles = await Vehicle.find()
     .populate("startLocation")
     .populate("endLocation")
     .populate("startProvince")
@@ -20,7 +32,17 @@ router.get("/vehicle", async (req, res) => {
     .populate("agent")
     .populate("type");
 
-  res.status(200).send(routes);
+  
+  let agentForAdminIds = await getAgentForAdmin(req.params.admin_id);
+
+  let results = [];
+  for (let vehicle of vehicles) {
+    if (agentForAdminIds.some(e => e == vehicle.agent._id.toString())) {
+      results.push(vehicle);
+    }
+  }
+
+  res.status(200).send(results);
 });
 
 router.get("/vehicle/:vehicle_id", async (req, res) => {
