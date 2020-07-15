@@ -142,7 +142,9 @@ router.post("/admin/signin", async (req, res) => {
     const token = jwt.sign({ adminId: admin._id }, "KLTN-Booking", {
       expiresIn: "24h",
     });
-    res.status(200).send({ token: token, id: admin._id });
+
+    let isRootAdmin = (await ManagementAdmin.find({admin : admin._id})).some(e => e.isroot === true);
+    res.status(200).send({ token: token, id: admin._id, isRootAdmin: isRootAdmin });
   } catch (err) {
     return res.status(422).send({ error: "Invalid password or username" });
   }
