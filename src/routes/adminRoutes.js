@@ -3,10 +3,13 @@ const mongoose = require("mongoose");
 var router = express.Router();
 var bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const { route } = require("./vehicleRoutes");
 
 const Admin = mongoose.model("Admin");
 const ManagementAdmin = mongoose.model("ManagementAdmin");
 const Agent = mongoose.model("Agent");
+const Payment = mongoose.model("Payment");
+const Booking = mongoose.model("Booking");
 
 
 let getAgentForAdmin = async (adminId) =>{
@@ -227,5 +230,40 @@ router.post("/managementadmin", async (req, res) => {
 router.patch("/managementadmin/:management_id", async (req, res) => {
 
 });
+
+router.post("/admin/changepassword", async (req, res) => {
+  let {adminId, passold, passnew } = req.body;
+
+  if (!adminId || !passold || !passnew) {
+    return res.status(422).send({ error: "Must provide username and password" });
+  }
+
+  let admin = await Admin.findById(adminId);
+  if(!admin){
+    return res.status(422).send({ error: "AdminId not valid" });
+  }
+  try {
+  await admin.comparePassword(passold);
+
+  bcrypt.genSalt(10, function (err, salt) {
+    if (err) return next(err);
+    bcrypt.hash(passnew, salt, (err, hash) => {
+      if (err) return next(err);
+      admin.password = hash;
+      admin.save();
+      res.status(200).send({message : "Change password success"})
+    });
+  });
+  } catch (err) {
+    return res.status(422).send({ error: "Invalid password or username" });
+  }
+  
+});
+
+
+// route.get("/statistical", async (req, res) => {
+//   let data = req.body;
+  
+// });
 
 module.exports = router;
