@@ -9,6 +9,7 @@ const Admin = mongoose.model("Admin");
 const ManagementAdmin = mongoose.model("ManagementAdmin");
 const Agent = mongoose.model("Agent");
 const Payment = mongoose.model("Payment");
+const RouteDeparture = mongoose.model("RouteDeparture");
 const Booking = mongoose.model("Booking");
 
 
@@ -261,9 +262,86 @@ router.post("/admin/changepassword", async (req, res) => {
 });
 
 
-// route.get("/statistical", async (req, res) => {
-//   let data = req.body;
-  
-// });
+route.get("/statistical", async (req, res) => {
+  let data = req.body;
+  var statusRouteComplete = await Const.findOne({
+    type: "trang_thai_hanh_trinh",
+    value: "da_di",
+  });
+  var statusBookingComplete = await Const.findOne({
+    type: "trang_thai_dat_cho",
+    value: "da_di",
+  });
+  let allBookings = await Booking.find();
+  const routeDepartures = await RouteDeparture.find()
+    .populate({
+      path: "route",
+      model: "Route",
+      populate: {
+        path:
+          "startLocation endLocation startProvince endProvince status vehicle",
+        populate: {
+          path:
+            "startLocation endLocation startProvince endProvince agent type",
+        },
+      },
+    });
+
+
+  let fn_DateCompare = async (DateA, DateB)=> {
+    var msDateA = Date.UTC(DateA.getFullYear(), DateA.getMonth()+1, DateA.getDate());
+    var msDateB = Date.UTC(DateB.getFullYear(), DateB.getMonth()+1, DateB.getDate());
+    if (parseFloat(msDateA) < parseFloat(msDateB))
+      return -1;  // lt
+    else if (parseFloat(msDateA) == parseFloat(msDateB))
+      return 0;  // eq
+    else if (parseFloat(msDateA) > parseFloat(msDateB))
+      return 1;  // gt
+    else
+      return null;  // error
+  };
+
+  let getStatistical = async (routeDeparture,allBookings)=>{
+    let bookings = allBookings.filter(e=>e.routeDeparture.toString() == routeDeparture._id.toString());
+    let bookingComplete = bookings.filter(e=>e.status.toString() == statusBookingComplete);
+    let ticketComplete = bookingComplete.length();
+    let tickerCancel = bookings.filter(e=>e.status.toString() != statusBookingComplete).length();
+
+    let revenue = 0;
+    for(let booking of bookingComplete){
+      revenue += booking.price;
+    }
+
+    let day = routeDeparture.departureDate.getDate();
+    let month = routeDeparture.departureDate.getMonth() + 1;
+    let year = routeDeparture.departureDate.getFullYear();
+
+    var departureDate = day + '/' + month + '/' + year; 
+
+    return {
+      departureDate : departureDate,
+      revenue : revenue,
+      ticketComplete : ticketComplete,
+      tickerCancel : tickerCancel
+    };
+  }
+  var groupBy = function (xs, key) {
+    return xs.reduce(function (rv, x) {
+      (rv[x[key]] = rv[x[key]] || []).push(x);
+      return rv;
+    }, {});
+  };
+  let routeDepartureSelectData = []
+  routeDepartures = routeDepartures.filter(e=>e.route.vehicle.agent._id.toString() == data.agentId 
+                    && e.status.toString() == statusRouteComplete._id.toString());
+  for(let routeDeparture of routeDepartures){
+    if(fn_DateCompare(data.fromDate,routeDeparture.departureDate)== -1){
+      if(fn_DateCompare(data.toDate ,routeDeparture.departureDate) == 1){
+        let data = getStatistical(routeDeparture,allBookings);
+        routeDepartureSelectData.push(data);
+      }
+    }
+  }
+});
 
 module.exports = router;
