@@ -170,24 +170,13 @@ router.get("/booking/:userId", async (req, res) => {
 
 router.post("/booking", async (req, res, next) => {
   const payload = req.body;
+  const bookingDetail = payload.bookingDetail;
+  const bookingInformation = payload.bookingInformation;
+  const userId = payload.userId;
+  // console.log(payload);
 
-  let departureId = payload.departureId;
-  if (!departureId) {
-    let departureDate = new Date(payload.departureDate);
-    let routeSchedule = RouteSchedule.findOne({
-      route: payload.routeId,
-      dayOfWeek: departureDate.getDay(),
-    });
-    const routeDeparture = new RouteDeparture({
-      route: payload.routeId,
-      routeSchedule: (await routeSchedule)._id,
-      departureDate: departureDate,
-    });
-    await routeDeparture.save();
-    departureId = routeDeparture._id;
-  }
-
-  // var validroute = mongoose.Types.ObjectId.isValid(departureId);
+  var bookingCode;
+  var orderId;
 
   var constSeats = await Const.findOne({
     type: "trang_thai_ghe",
@@ -198,9 +187,8 @@ router.post("/booking", async (req, res, next) => {
     value: "cho",
   });
 
-  var bookingCode;
   try {
-    var booking = [0];
+    var booking = [];
     while (booking.length > 0) {
       bookingCode = makeCode(5);
       booking = await Booking.find({
@@ -211,29 +199,52 @@ router.post("/booking", async (req, res, next) => {
   } catch (error) {
     console.log("Check booking code exists: " + error);
   }
-  var orderId;
-  try {
-    await payload.seats.forEach((seat) => {
-      const bookingInfo = {
-        routeDeparture: departureId,
-        seatNumber: seat.seatNumber,
-        price: payload.price,
-        user: payload.userId,
-        bookingInformation: payload.bookingInformation,
-        seatStatus: constSeats,
-        status: constBooking,
-        bookingCode: bookingCode,
-      };
-      const booking = new Booking(bookingInfo);
-      booking.save();
-      orderId = booking._id;
-    });
-    // console.log(orderId);
-    return res.status(200).send({ bookingCode: bookingCode, orderId: orderId });
-  } catch (error) {
-    console.log("Booking Error: " + error);
-    res.status(502).send(error.response);
-  }
+
+  bookingDetail.forEach(async (e) => {
+    let departureId = e.departureId;
+    if (!departureId) {
+      let departureDate = new Date(e.startDate);
+      console.log(departureDate.getDate());
+      console.log(e._id);
+      let routeSchedule = RouteSchedule.findOne({
+        route: e._id,
+        dayOfWeek: departureDate.getDay(),
+      });
+      const routeDeparture = new RouteDeparture({
+        route: e._id,
+        routeSchedule: (await routeSchedule)._id,
+        departureDate: departureDate,
+      });
+      await routeDeparture.save();
+      departureId = routeDeparture._id;
+    }
+
+    // var validroute = mongoose.Types.ObjectId.isValid(departureId);
+
+    try {
+      await e.seats.forEach((seat) => {
+        const bookingInfo = {
+          routeDeparture: departureId,
+          seatNumber: seat.seatNumber,
+          price: e.price,
+          user: userId,
+          bookingInformation: bookingInformation,
+          seatStatus: constSeats,
+          status: constBooking,
+          bookingCode: bookingCode,
+        };
+        const booking = new Booking(bookingInfo);
+        booking.save();
+        orderId = booking._id;
+      });
+      // console.log(orderId);
+    } catch (error) {
+      console.log("Booking Error: " + error);
+      res.status(502).send(error.response);
+    }
+  });
+
+  return res.status(200).send({ bookingCode: bookingCode, orderId: orderId });
 });
 
 router.post("/booking/momo_ipn", async (req, res) => {
