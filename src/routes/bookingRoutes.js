@@ -171,6 +171,11 @@ router.get("/booking/:userId", async (req, res) => {
 router.post("/booking", async (req, res, next) => {
   const payload = req.body;
 
+  var statusRoute = await Const.findOne({
+    type: "trang_thai_hanh_trinh",
+    value: "chua_di",
+  });
+
   let departureId = payload.departureId;
   if (!departureId) {
     let departureDate = new Date(payload.departureDate);
@@ -182,6 +187,7 @@ router.post("/booking", async (req, res, next) => {
       route: payload.routeId,
       routeSchedule: (await routeSchedule)._id,
       departureDate: departureDate,
+      status : statusRoute
     });
     await routeDeparture.save();
     departureId = routeDeparture._id;
