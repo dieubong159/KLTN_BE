@@ -262,7 +262,7 @@ router.post("/admin/changepassword", async (req, res) => {
 });
 
 
-route.get("/statistical", async (req, res) => {
+router.get("/statistical", async (req, res) => {
   let data = req.body;
   var statusRouteComplete = await Const.findOne({
     type: "trang_thai_hanh_trinh",
@@ -304,8 +304,8 @@ route.get("/statistical", async (req, res) => {
   let getStatistical = async (routeDeparture,allBookings)=>{
     let bookings = allBookings.filter(e=>e.routeDeparture.toString() == routeDeparture._id.toString());
     let bookingComplete = bookings.filter(e=>e.status.toString() == statusBookingComplete);
-    let ticketComplete = bookingComplete.length();
-    let tickerCancel = bookings.filter(e=>e.status.toString() != statusBookingComplete).length();
+    let ticketComplete = bookingComplete.length;
+    let ticketCancel = bookings.filter(e=>e.status.toString() != statusBookingComplete).length;
 
     let revenue = 0;
     for(let booking of bookingComplete){
@@ -322,7 +322,7 @@ route.get("/statistical", async (req, res) => {
       departureDate : departureDate,
       revenue : revenue,
       ticketComplete : ticketComplete,
-      tickerCancel : tickerCancel
+      ticketCancel : ticketCancel
     };
   }
   var groupBy = function (xs, key) {
@@ -331,17 +331,30 @@ route.get("/statistical", async (req, res) => {
       return rv;
     }, {});
   };
-  let routeDepartureSelectData = []
+  let routeDepartureSelectData = [];
   routeDepartures = routeDepartures.filter(e=>e.route.vehicle.agent._id.toString() == data.agentId 
                     && e.status.toString() == statusRouteComplete._id.toString());
   for(let routeDeparture of routeDepartures){
-    if(fn_DateCompare(data.fromDate,routeDeparture.departureDate)== -1){
-      if(fn_DateCompare(data.toDate ,routeDeparture.departureDate) == 1){
+    if(fn_DateCompare(data.fromdate,routeDeparture.departureDate)== -1){
+      if(fn_DateCompare(data.todate ,routeDeparture.departureDate) == 1){
         let data = getStatistical(routeDeparture,allBookings);
         routeDepartureSelectData.push(data);
       }
     }
   }
+  let groupDate = groupBy(routeDepartureSelectData,"departureDate");
+  let dataFinal = [];
+  for (prop in groupDate) {
+    let groupItem = groupDate[prop];
+    dataFinal.push({
+      date: prop,
+      completeTickets: groupItem.map(e => e.ticketComplete).reduce((a, b) => a + b, 0),
+      cancelTickets: groupItem.map(e => e.ticketCancel).reduce((a, b) => a + b, 0),
+      revenue: groupItem.map(e => e.revenue).reduce((a, b) => a + b, 0)
+    });
+  }
+
+  return res.send(dataFinal);
 });
 
 module.exports = router;
