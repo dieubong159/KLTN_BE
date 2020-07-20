@@ -81,6 +81,7 @@ const routeDepartureSchema = mongoose.Schema({
   departureDate: {
     type: Date,
   },
+  status: { type: mongoose.Schema.Types.ObjectId, ref: "Const" }
 });
 
 mongoose.model("Route", routeSchema);

@@ -80,6 +80,7 @@ router.post("/removeTicket/:bookingcode",async (req,res)=>{
 
   for(let booking of bookings){
     booking.status = statusBookingRemove;
+    booking.bookingTime = new Date();
     booking.save();
   }
   res.status(200).json({

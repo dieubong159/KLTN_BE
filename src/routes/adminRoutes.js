@@ -3,10 +3,14 @@ const mongoose = require("mongoose");
 var router = express.Router();
 var bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const { route } = require("./vehicleRoutes");
 
 const Admin = mongoose.model("Admin");
 const ManagementAdmin = mongoose.model("ManagementAdmin");
 const Agent = mongoose.model("Agent");
+const Payment = mongoose.model("Payment");
+const RouteDeparture = mongoose.model("RouteDeparture");
+const Booking = mongoose.model("Booking");
 
 
 let getAgentForAdmin = async (adminId) =>{
@@ -226,6 +230,131 @@ router.post("/managementadmin", async (req, res) => {
 
 router.patch("/managementadmin/:management_id", async (req, res) => {
 
+});
+
+router.post("/admin/changepassword", async (req, res) => {
+  let {adminId, passold, passnew } = req.body;
+
+  if (!adminId || !passold || !passnew) {
+    return res.status(422).send({ error: "Must provide username and password" });
+  }
+
+  let admin = await Admin.findById(adminId);
+  if(!admin){
+    return res.status(422).send({ error: "AdminId not valid" });
+  }
+  try {
+  await admin.comparePassword(passold);
+
+  bcrypt.genSalt(10, function (err, salt) {
+    if (err) return next(err);
+    bcrypt.hash(passnew, salt, (err, hash) => {
+      if (err) return next(err);
+      admin.password = hash;
+      admin.save();
+      res.status(200).send({message : "Change password success"})
+    });
+  });
+  } catch (err) {
+    return res.status(422).send({ error: "Invalid password or username" });
+  }
+  
+});
+
+
+router.get("/statistical", async (req, res) => {
+  let data = req.body;
+  var statusRouteComplete = await Const.findOne({
+    type: "trang_thai_hanh_trinh",
+    value: "da_di",
+  });
+  var statusBookingComplete = await Const.findOne({
+    type: "trang_thai_dat_cho",
+    value: "da_di",
+  });
+  let allBookings = await Booking.find();
+  const routeDepartures = await RouteDeparture.find()
+    .populate({
+      path: "route",
+      model: "Route",
+      populate: {
+        path:
+          "startLocation endLocation startProvince endProvince status vehicle",
+        populate: {
+          path:
+            "startLocation endLocation startProvince endProvince agent type",
+        },
+      },
+    });
+
+
+  let fn_DateCompare = async (DateA, DateB)=> {
+    var msDateA = Date.UTC(DateA.getFullYear(), DateA.getMonth()+1, DateA.getDate());
+    var msDateB = Date.UTC(DateB.getFullYear(), DateB.getMonth()+1, DateB.getDate());
+    if (parseFloat(msDateA) < parseFloat(msDateB))
+      return -1;  // lt
+    else if (parseFloat(msDateA) == parseFloat(msDateB))
+      return 0;  // eq
+    else if (parseFloat(msDateA) > parseFloat(msDateB))
+      return 1;  // gt
+    else
+      return null;  // error
+  };
+
+  let getStatistical = async (routeDeparture,allBookings)=>{
+    let bookings = allBookings.filter(e=>e.routeDeparture.toString() == routeDeparture._id.toString());
+    let bookingComplete = bookings.filter(e=>e.status.toString() == statusBookingComplete);
+    let ticketComplete = bookingComplete.length;
+    let ticketCancel = bookings.filter(e=>e.status.toString() != statusBookingComplete).length;
+
+    let revenue = 0;
+    for(let booking of bookingComplete){
+      revenue += booking.price;
+    }
+
+    let day = routeDeparture.departureDate.getDate();
+    let month = routeDeparture.departureDate.getMonth() + 1;
+    let year = routeDeparture.departureDate.getFullYear();
+
+    var departureDate = day + '/' + month + '/' + year; 
+
+    return {
+      departureDate : departureDate,
+      revenue : revenue,
+      ticketComplete : ticketComplete,
+      ticketCancel : ticketCancel
+    };
+  }
+  var groupBy = function (xs, key) {
+    return xs.reduce(function (rv, x) {
+      (rv[x[key]] = rv[x[key]] || []).push(x);
+      return rv;
+    }, {});
+  };
+  let routeDepartureSelectData = [];
+  routeDepartures = routeDepartures.filter(e=>e.route.vehicle.agent._id.toString() == data.agentId 
+                    && e.status.toString() == statusRouteComplete._id.toString());
+  for(let routeDeparture of routeDepartures){
+    if(fn_DateCompare(data.fromdate,routeDeparture.departureDate)== -1){
+      if(fn_DateCompare(data.todate ,routeDeparture.departureDate) == 1){
+        let data = getStatistical(routeDeparture,allBookings);
+        routeDepartureSelectData.push(data);
+      }
+    }
+  }
+  let groupDate = groupBy(routeDepartureSelectData,"departureDate");
+  let dataFinal = [];
+  for (prop in groupDate) {
+    let groupItem = groupDate[prop];
+    dataFinal.push({
+      date: prop,
+      completeTickets: groupItem.map(e => e.ticketComplete).reduce((a, b) => a + b, 0),
+      cancelTickets: groupItem.map(e => e.ticketCancel).reduce((a, b) => a + b, 0),
+      revenue: groupItem.map(e => e.revenue).reduce((a, b) => a + b, 0)
+    });
+  }
+
+  return res.send(dataFinal);
 });
 
 module.exports = router;

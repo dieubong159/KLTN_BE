@@ -173,11 +173,13 @@ router.post("/booking", async (req, res, next) => {
   const bookingDetail = payload.bookingDetail;
   const bookingInformation = payload.bookingInformation;
   const userId = payload.userId;
-  // console.log(payload);
-
   var bookingCode;
   var orderId;
 
+  var statusRoute = await Const.findOne({
+    type: "trang_thai_hanh_trinh",
+    value: "chua_di",
+  });
   var constSeats = await Const.findOne({
     type: "trang_thai_ghe",
     value: "giu_cho",
@@ -214,6 +216,7 @@ router.post("/booking", async (req, res, next) => {
         route: e._id,
         routeSchedule: (await routeSchedule)._id,
         departureDate: departureDate,
+        status: statusRoute,
       });
       await routeDeparture.save();
       departureId = routeDeparture._id;

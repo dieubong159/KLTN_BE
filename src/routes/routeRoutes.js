@@ -73,6 +73,60 @@ let getAgentForAdmin = async (adminId) => {
   return [...new Set(agents)];
 };
 
+let setDepartureComplete = async (allRouteDetails,allbookings)=>{
+  let departures = await RouteDeparture.find().populate("route");
+  //let allRouteDetails = await RouteDetail.find().populate("station");
+  //let allbookings = Booking.find({r})
+  var statusRouteComplete = await Const.findOne({
+    type: "trang_thai_hanh_trinh",
+    value: "da_di",
+  });
+  var statusBookingComplete = await Const.findOne({
+    type: "trang_thai_dat_cho",
+    value: "da_di",
+  });
+
+  for(let departure of departures){
+    if(departure.status.toString() != statusRouteComplete._id.toString()){
+      let date = departure.departureDate.getDate(),
+      month = departure.departureDate.getMonth() + 1,
+      year = departure.departureDate.getFullYear();
+  
+      let startTime = departure.route.startTime.split(":");
+  
+      let routeDetails = allRouteDetails.filter(e=>e.route.toString() == departure.route._id.toString());
+      let timeLength = 0;
+      for(let item of routeDetails){
+        timeLength += item.timeArrivingToStation;
+      }
+  
+      let departureTime = moment(`${year}-${month}-${date} 00:00:00`,"YYYY-MM-DD HH:mm:ss")
+      .add(parseInt(startTime[0]), "hours")
+      .add(parseInt(startTime[1]), "minutes")
+      .add(timeLength, "hours");
+  
+      let today = new Date();
+      let dateToday = today.getDate(),
+          monthToday = today.getMonth() + 1,
+          yearToday = today.getFullYear();
+  
+      let todayMoment = moment(`${yearToday}-${monthToday}-${dateToday} 00:00:00`,"YYYY-MM-DD HH:mm:ss");
+  
+      if(todayMoment.isAfter(departureTime)){
+        departure.status = statusRouteComplete;
+        await departure.save();
+
+        let bookings = allbookings.filter(e=>e.routeDeparture.toString() == departure._id.toString());
+        for(let booking of bookings){
+          booking.status = statusBookingComplete;
+          await booking.save();
+        }
+      }
+    }
+    
+  }
+};
+
 router.get("/route-by-agent/:admin_id", async (req, res) => {
   const routes = await Route.find()
     .populate("startLocation")
@@ -108,6 +162,8 @@ router.get("/find-routes", async (req, resp) => {
     departureDate: params.departureDate,
   };
 
+  
+
   let dataFinal = [];
   let allRoute = await Route.find();
   let allRouteDetails = await RouteDetail.find().populate("station");
@@ -138,6 +194,9 @@ router.get("/find-routes", async (req, resp) => {
     type: "trang_thai_dat_cho",
     value: "da_huy",
   });
+
+  // chạy tự động set chuyến đã đi
+  setDepartureComplete(allRouteDetails,allBookings);
 
   let routeDetailByStartLocs = allRouteDetails.filter(
     (e) =>
