@@ -12,6 +12,10 @@ const ReviewSchema = mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
   },
+  route: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Route",
+  },
 });
 
 const agentSchema = mongoose.Schema({
@@ -29,6 +33,10 @@ const agentSchema = mongoose.Schema({
       default: undefined,
     },
   ],
+  reviewRate: {
+    type: Number,
+    default: undefined,
+  },
 });
 
 const agentDetailSchema = mongoose.Schema({

@@ -92,15 +92,28 @@ router.post("/agent/review", async (req, res) => {
         comment: payload.review,
       });
       review.save();
+
+      let newReviewRate;
+      if (agent.reviewRate) {
+        newReviewRate =
+          (agent.reviewRate * agent.reviews.length + review.rating) /
+          (agent.reviews.length + 1);
+      } else {
+        newReviewRate = review.rating;
+      }
+
       Agent.findOneAndUpdate(
         { _id: agent._id },
-        { $push: { reviews: review._id } },
+        { $push: { reviews: review._id }, $set: { reviewRate: newReviewRate } },
         { upsert: false },
         function (err, doc) {
           if (err) return res.status(500).send({ error: err });
-          return res.send(doc);
+          res.status(200).send(doc);
         }
       );
+
+      // console.log("Agent found: ");
+      // console.log(doc);
       // res.status(200).send({ message: "Review successfully" });
     } catch (error) {
       console.log(error);
