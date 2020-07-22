@@ -39,7 +39,7 @@ router.post("/adminpayment", async (req, res) => {
   }
 
   var bookings = await Booking.find();
-  bookings = bookings.filter(e=>e.bookingCode = data.bookingCode);
+  bookings = bookings.filter(e=>e.bookingCode == data.bookingCode);
 
   if(!bookings){
     return res.status(404).json({
@@ -67,9 +67,9 @@ router.post("/adminpayment", async (req, res) => {
   });
 });
 
-router.post("/removeTicket/:bookingcode",async (req,res)=>{
+router.post("/removeTicket",async (req,res)=>{
   var bookings = await Booking.find();
-  bookings = bookings.filter(e=>e.bookingCode = req.params.bookingCode);
+  bookings = bookings.filter(e=>e.bookingCode == req.body.bookingCode);
 
   if(!bookings){
     return res.status(404).json({
@@ -80,7 +80,7 @@ router.post("/removeTicket/:bookingcode",async (req,res)=>{
 
   for(let booking of bookings){
     booking.status = statusBookingRemove;
-    booking.bookingTime = new Date();
+    //booking.bookingTime = new Date();
     booking.save();
   }
   res.status(200).json({
