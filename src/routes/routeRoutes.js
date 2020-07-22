@@ -1260,7 +1260,7 @@ router.patch("/route/:route_id", async (req, res) => {
 });
 
 router.get("/routeDeparture-by-agent/:admin_id", async (req, res) => {
-  const routeDepartures = await RouteDeparture.find()
+  const routeDepartures = await RouteDeparture.find().populate('status')
     .populate({
       path: "route",
       model: "Route",
