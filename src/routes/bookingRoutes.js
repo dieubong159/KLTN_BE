@@ -173,7 +173,7 @@ router.post("/booking", async (req, res, next) => {
   const bookingDetail = payload.bookingDetail;
   const bookingInformation = payload.bookingInformation;
   const userId = payload.userId;
-  var bookingCode;
+  let bookingCode;
   var orderId;
 
   var statusRoute = await Const.findOne({
@@ -190,7 +190,7 @@ router.post("/booking", async (req, res, next) => {
   });
 
   try {
-    var booking = [];
+    var booking = [0];
     while (booking.length > 0) {
       bookingCode = makeCode(5);
       booking = await Booking.find({
@@ -206,8 +206,8 @@ router.post("/booking", async (req, res, next) => {
     let departureId = e.departureId;
     if (!departureId) {
       let departureDate = new Date(e.startDate);
-      console.log(departureDate.getDate());
-      console.log(e._id);
+      // console.log(departureDate.getDate());
+      // console.log(e._id);
       let routeSchedule = RouteSchedule.findOne({
         route: e._id,
         dayOfWeek: departureDate.getDay(),
@@ -246,7 +246,7 @@ router.post("/booking", async (req, res, next) => {
       res.status(502).send(error.response);
     }
   });
-
+  // console.log(bookingCode);
   return res.status(200).send({ bookingCode: bookingCode, orderId: orderId });
 });
 
