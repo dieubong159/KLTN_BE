@@ -136,6 +136,41 @@ let setDepartureComplete = async (allRouteDetails, allbookings) => {
   }
 };
 
+let setBookingTimeout = async (allbookings) => {
+  let statusSeatBooking = await Const.findOne({type:"trang_thai_ghe", value: "giu_cho"});
+  let statusBookingRemove = await Const.findOne({type:"trang_thai_dat_cho", value: "da_huy"});
+  for(let booking of allbookings){
+    if(booking.seatStatus.toString() == statusSeatBooking._id.toString()){
+      let date = booking.bookingExpiredTime.getDate(),
+      month = booking.bookingExpiredTime.getMonth() + 1,
+      year = booking.bookingExpiredTime.getFullYear(),
+      hours = booking.bookingExpiredTime.getHours(),
+      minutes = booking.bookingExpiredTime.getMinutes();
+      let bookingExpiredTime = moment(
+        `${year}-${month}-${date} ${hours}:${minutes}:00`,
+        "YYYY-MM-DD HH:mm:ss"
+      )
+
+
+      let today = new Date();
+      let dateToday = today.getDate(),
+        monthToday = today.getMonth() + 1,
+        yearToday = today.getFullYear(),
+        hoursToday = booking.bookingExpiredTime.getHours(),
+        minutesToday = booking.bookingExpiredTime.getMinutes();
+
+      let todayMoment = moment(
+        `${yearToday}-${monthToday}-${dateToday} ${hoursToday}:${minutesToday}:00`,
+        "YYYY-MM-DD HH:mm:ss"
+      );
+      if (todayMoment.isAfter(bookingExpiredTime)) {
+        booking.status = statusBookingRemove;
+        await booking.save();
+      }
+    }
+  }
+};
+
 router.get("/route-by-agent/:admin_id", async (req, res) => {
   const routes = await Route.find()
     .populate("startLocation")
@@ -204,6 +239,8 @@ router.get("/find-routes", async (req, resp) => {
 
   // chạy tự động set chuyến đã đi
   setDepartureComplete(allRouteDetails, allBookings);
+  // set booking hết hạn 
+  setBookingTimeout(allBookings);
 
   let routeDetailByStartLocs = allRouteDetails.filter(
     (e) =>
