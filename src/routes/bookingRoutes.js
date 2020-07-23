@@ -146,6 +146,7 @@ router.get("/booking", async (req, res) => {
 
 router.get("/booking/:userId", async (req, res) => {
   const userId = req.params.userId;
+  console.log(userId);
   try {
     const booking = await Booking.find({ user: userId })
       .populate("status")
@@ -262,9 +263,6 @@ router.post("/booking/momo_ipn", async (req, res) => {
     .update(rawSignature)
     .digest("hex");
   if (signature === payload.signature) {
-    // var io = req.app.get("socketIo");
-    // var socketId = req.app.get("socketIoId");
-    // io.to(socketId).emit("ipn", payload);
     const responseBody = {};
     responseBody.partnerCode = payload.partnerCode;
     responseBody.accessKey = payload.accessKey;
@@ -276,16 +274,55 @@ router.post("/booking/momo_ipn", async (req, res) => {
     responseBody.signature = payload.signature;
     res.header({ "Content-Type": "application/json;charset=UTF-8" });
     res.status(200).send(responseBody);
+  }
+});
 
-    // if (payload.errorCode === "0") {
-    //   let paidTicket = await Booking.findOne({ _id: responseBody.orderId });
-    //   if (paidTicket) {
-    //     let relevantTicket = await Booking.find({
-    //       bookingCode: paidTicket.bookingCode,
-    //     });
-    //     if (relevantTicket) console.log("Relevant Ticket: " + relevantTicket);
-    //   }
-    // }
+router.post("/booking/cancelTicketByCode", async (req, res) => {
+  var bookings = await Booking.find();
+  bookings = bookings.filter((e) => e.bookingCode == req.body.bookingCode);
+
+  if (!bookings) {
+    return res.status(404).json({
+      error: "Not a valid bookingCode",
+    });
+  }
+  var statusBookingRemove = await Const.findOne({
+    type: "trang_thai_dat_cho",
+    value: "da_huy",
+  });
+
+  for (let booking of bookings) {
+    booking.status = statusBookingRemove;
+    booking.cancelDate = new Date();
+    booking.save();
+  }
+  res.status(200).json({
+    message: "Booking remove successfully!",
+  });
+});
+
+router.post("/booking/cancelTicketById", async (req, res) => {
+  var booking = await Booking.findById(req.body._id);
+
+  if (!booking) {
+    return res.status(404).json({
+      error: "Not a valid bookingCode",
+    });
+  }
+
+  var statusBookingRemove = await Const.findOne({
+    type: "trang_thai_dat_cho",
+    value: "da_huy",
+  });
+  try {
+    booking.status = statusBookingRemove;
+    booking.cancelDate = new Date();
+    booking.save();
+    res.status(200).json({
+      message: "Booking remove successfully!",
+    });
+  } catch (err) {
+    res.status(500).send(err);
   }
 });
 
