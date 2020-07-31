@@ -1,7 +1,6 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const jwt = require("jsonwebtoken");
-const requireAuth = require("../middlewares/requireAuth");
 const User = mongoose.model("User");
 
 const router = express.Router();
@@ -23,9 +22,10 @@ router.post("/signup", async (req, res) => {
     const token = jwt.sign({ userId: user._id }, "KLTN-Booking", {
       expiresIn: "24h",
     });
+
     res.send({ token });
   } catch (err) {
-    console.log(err.message);
+    console.log(err.response);
     res.status(422).send(err.message);
   }
 });
@@ -69,12 +69,12 @@ router.post("/signin", async (req, res) => {
   }
 });
 
-router.get("/user/:userId", requireAuth, async (req, res) => {
+router.get("/user/:userId", async (req, res) => {
   const userId = req.params.userId;
   try {
     const user = await User.findOne({
       _id: userId,
-    });
+    }).populate("coupons");
     if (user) {
       res.send({ user });
     } else {
@@ -92,7 +92,7 @@ router.post("/verifyToken", (req, res) => {
     const decoded = jwt.verify(token, "KLTN-Booking");
     res.send(decoded);
   } catch (error) {
-    console.log(error);
+    console.log(error.response);
     return res.status(422).send({ error: "Invalid Token" });
   }
 });

@@ -33,6 +33,13 @@ const agentSchema = mongoose.Schema({
       default: undefined,
     },
   ],
+  coupons: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Coupon",
+      default: undefined,
+    },
+  ],
   reviewRate: {
     type: Number,
     default: undefined,

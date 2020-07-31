@@ -10,6 +10,7 @@ const Location = mongoose.model("Location");
 const User = mongoose.model("User");
 const Review = mongoose.model("Review");
 const ManagementAdmin = mongoose.model("ManagementAdmin");
+const Coupon = mongoose.model("Coupon");
 
 let getAgentForAdmin = async (adminId) => {
   let adminMmgs = await ManagementAdmin.find();
@@ -305,5 +306,58 @@ router.delete("/agent/:agent_id", async (req, res) => {
       });
     });
 });
+
+router.post("/agent/coupon", async (req, res) => {
+  const payload = req.body;
+  // console.log(payload);
+  const coupon = await Coupon.findById(payload.couponId);
+  const agent = await Agent.findById(payload.agentId);
+  // console.log(agent);
+  // console.log(coupon);
+  if (agent && coupon) {
+    const agentCoupon = agent.coupons.filter((e) => e._id === payload.couponId);
+    console.log(agentCoupon);
+    if (agentCoupon.length !== 0)
+      return res.status(422).send({ message: "Agent already has this coupon" });
+    else {
+      Agent.findByIdAndUpdate(
+        agent._id,
+        {
+          $push: { coupons: coupon._id },
+        },
+        { upsert: false },
+        function (err, doc) {
+          if (err) return res.status(500).send({ error: err });
+          res.status(200).send(doc);
+        }
+      );
+    }
+  } else {
+    res.status(422).send({ message: "No agent or coupon found" });
+  }
+});
+
+// router.get("/agent/coupon", async (req, res) => {
+//   const agentIds = req.body;
+//   let objAgents = [];
+//   agentIds.forEach(agentId => {
+//     objAgents.push(mongoose.Schema.Types.ObjectId(agentId));
+//   });
+
+//   const agents = await Agent.find({
+//     _id: {
+//       $in: objAgents
+//     }
+//   })
+//   if (agents) {
+//     console.log(agents.)
+//     // const coupons = agent.coupons;
+//     // if (coupons) {
+//     //   return res.status(200).send({ agentCoupons: coupons });
+//     // } else {
+//     //   return res.send({ message: "No coupons found!" });
+//     // }
+//   }
+// });
 
 module.exports = router;

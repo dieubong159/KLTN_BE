@@ -1,8 +1,7 @@
 const express = require("express");
 const mongoose = require("mongoose");
 
-const Counpon = mongoose.model("Booking");
-const CouponCode = mongoose.model("CouponCode");
+const Coupon = mongoose.model("Coupon");
 const Payment = mongoose.model("Payment");
 const Booking = mongoose.model("Booking");
 const Const = mongoose.model("Const");
@@ -16,21 +15,21 @@ router.get("/payment", async (req, res) => {
 
 router.get("/payment/:payment_id", async (req, res) => {});
 
-router.post("/adminpayment", async (req, res) => {
+router.post("/confirmPayment", async (req, res) => {
   var data = req.body;
 
-  var counpon;
+  var coupon;
   var discountRate = 0;
-  if (!data.counpon) {
-    counpon = null;
+  if (!data.coupon) {
+    coupon = null;
   } else {
-    var counpons = await Counpon.find().populate("code");
-    var counponCheck = counpons.find((e) => e._id.toString() == data.counpon);
-    if (!counponCheck) {
-      counpon = null;
+    var coupons = await Coupon.find().populate("code");
+    var couponCheck = coupons.find((e) => e._id.toString() == data.coupon);
+    if (!couponCheck) {
+      coupon = null;
     } else {
-      counpon = counponCheck;
-      discountRate = counponCheck.discountRate;
+      coupon = couponCheck;
+      discountRate = couponCheck.discountRate;
     }
   }
 
@@ -42,28 +41,58 @@ router.post("/adminpayment", async (req, res) => {
       error: "Not a valid bookingCode",
     });
   }
+  try {
+    for (let booking of bookings) {
+      let pricePayment = booking.price * ((100 - discountRate) / 100);
+      var payment = new Payment({
+        booking: booking,
+        price: booking.price,
+        pricePayment: pricePayment,
+        coupon: coupon,
+      });
 
-  for (let booking of bookings) {
-    let pricePayment = booking.price * ((100 - discountRate) / 100);
-    var payment = new Payment({
-      booking: booking,
-      price: booking.price,
-      pricePayment: pricePayment,
-      counpon: counpon,
+      var constSeats = await Const.findOne({
+        type: "trang_thai_ghe",
+        value: "da_dat",
+      });
+      booking.seatStatus = constSeats;
+      booking.save();
+
+      payment.save();
+    }
+    res.status(200).json({
+      message: "Payment added successfully!",
     });
-
-    var constSeats = await Const.findOne({
-      type: "trang_thai_ghe",
-      value: "da_dat",
-    });
-    booking.seatStatus = constSeats;
-    booking.save();
-
-    payment.save();
+  } catch (error) {
+    res.send(error);
   }
-  res.status(200).json({
-    message: "Payment added successfully!",
-  });
+});
+
+router.post("/coupon", async (req, res) => {
+  var payload = req.body;
+  console.log(payload);
+  const coupons = await Coupon.find({ code: payload.code });
+  console.log(coupons);
+  if (coupons.length !== 0) {
+    return res.status(422).send({ message: "Code available" });
+  } else {
+    try {
+      const newCoupon = new Coupon(payload);
+      await newCoupon.save();
+      return res.status(200).send({ message: "Saved!" });
+    } catch (error) {
+      return res.send(error);
+    }
+  }
+});
+
+router.get("/coupon", async (req, res) => {
+  try {
+    const coupons = await Coupon.find();
+    res.status(200).send(coupons);
+  } catch (error) {
+    res.status(422).send(error);
+  }
 });
 
 module.exports = router;

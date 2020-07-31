@@ -21,6 +21,7 @@ var orderInfo = "Thanh toán bằng Momo";
 // var returnUrl = "";
 var notifyurl = "https://5947eba45346.ngrok.io/booking/momo_ipn";
 var requestType = "captureMoMoWallet";
+var storeId = "gVOSOzYsIuCrf8cejBG4";
 var extraData = "";
 
 const makeCode = (length) => {
@@ -39,7 +40,10 @@ router.post("/booking/req_momo", async (req, res) => {
   // console.log("Request momo: " + payload);
 
   // console.log("Request momo:" + payload.bookingId);
-  var amount = payload.routeDetail.price * payload.seats.length;
+  let amount = 0;
+  payload.routeDetail.forEach(function (value, index) {
+    amount = value.price * payload.seats[index].length;
+  });
   var rawSignature =
     "partnerCode=" +
     partnerCode +
@@ -93,6 +97,40 @@ router.post("/booking/req_momo", async (req, res) => {
   } catch (err) {
     res.status(404).send(err);
   }
+});
+
+router.post("/booking/req_pos", async (req, res) => {
+  const payload = req.body;
+  const storeSlug = partnerCode + "-" + storeId;
+  let amount = 0;
+  payload.routeDetail.forEach(function (value, index) {
+    amount = value.price * payload.seats[index].length;
+  });
+  var rawSignature =
+    "storeSlug=" +
+    storeSlug +
+    "&amount=" +
+    amount.toString() +
+    "&billId=" +
+    payload.orderId;
+  // console.log("--------------------RAW SIGNATURE----------------");
+  // console.log(rawSignature);
+  var signature = crypto
+    .createHmac("sha256", serectkey)
+    .update(rawSignature)
+    .digest("hex");
+  console.log("--------------------SIGNATURE----------------");
+  console.log(signature);
+  const QRUri =
+    "https://test-payment.momo.vn/pay/store/" +
+    storeSlug +
+    "?a=" +
+    amount.toString() +
+    "&b=" +
+    payload.orderId +
+    "&s=" +
+    signature;
+  res.status(200).send({ QRUri: QRUri });
 });
 
 router.post("/booking/checking_order_status", async (req, res) => {
@@ -149,7 +187,7 @@ router.get("/booking/:userId", async (req, res) => {
   console.log(userId);
   try {
     const booking = await Booking.find({ user: userId })
-      .populate("status")
+      .populate("status seatStatus")
       .populate({
         path: "routeDeparture",
         populate: {
@@ -174,8 +212,9 @@ router.post("/booking", async (req, res, next) => {
   const bookingDetail = payload.bookingDetail;
   const bookingInformation = payload.bookingInformation;
   const userId = payload.userId;
+  // console.log(bookingDetail);
+
   let bookingCode;
-  var orderId;
 
   var statusRoute = await Const.findOne({
     type: "trang_thai_hanh_trinh",
@@ -202,53 +241,59 @@ router.post("/booking", async (req, res, next) => {
   } catch (error) {
     console.log("Check booking code exists: " + error);
   }
-
-  bookingDetail.forEach(async (e) => {
+  // console.log("Booking Detail:");
+  // console.log(bookingDetail[0].seats);
+  bookingDetail.forEach((e) => {
     let departureId = e.departureId;
     if (!departureId) {
       let departureDate = new Date(e.startDate);
       // console.log(departureDate.getDate());
       // console.log(e._id);
-      let routeSchedule = RouteSchedule.findOne({
+      RouteSchedule.findOne({
         route: e._id,
         dayOfWeek: departureDate.getDay(),
-      });
-      const routeDeparture = new RouteDeparture({
-        route: e._id,
-        routeSchedule: (await routeSchedule)._id,
-        departureDate: departureDate,
-        status: statusRoute,
-      });
-      await routeDeparture.save();
-      departureId = routeDeparture._id;
-    }
-
-    // var validroute = mongoose.Types.ObjectId.isValid(departureId);
-
-    try {
-      await e.seats.forEach((seat) => {
-        const bookingInfo = {
-          routeDeparture: departureId,
-          seatNumber: seat.seatNumber,
-          price: e.price,
-          user: userId,
-          bookingInformation: bookingInformation,
-          seatStatus: constSeats,
-          status: constBooking,
-          bookingCode: bookingCode,
-        };
-        const booking = new Booking(bookingInfo);
-        booking.save();
-        orderId = booking._id;
-      });
-      // console.log(orderId);
-    } catch (error) {
-      console.log("Booking Error: " + error);
-      res.status(502).send(error.response);
+      })
+        .then((result) => {
+          const routeDeparture = new RouteDeparture({
+            route: e._id,
+            routeSchedule: result._id,
+            departureDate: departureDate,
+            status: statusRoute,
+          });
+          routeDeparture.save();
+          departureId = routeDeparture._id;
+        })
+        .then(() => {
+          console.log(departureId);
+          try {
+            e.seats.forEach((seat) => {
+              const bookingInfo = {
+                routeDeparture: departureId,
+                seatNumber: seat.seatNumber,
+                price: e.price,
+                user: userId,
+                bookingInformation: bookingInformation,
+                seatStatus: constSeats,
+                status: constBooking,
+                bookingCode: bookingCode,
+              };
+              // console.log(bookingInfo);
+              const booking = new Booking(bookingInfo);
+              booking.save();
+              // console.log(booking);
+              // orderId = booking._id;
+              // bookingExpired = booking.bookingExpiredTime;
+            });
+            // console.log(booking);
+          } catch (error) {
+            res.status(502).send(error.response);
+          }
+        });
     }
   });
-  // console.log(bookingCode);
-  return res.status(200).send({ bookingCode: bookingCode, orderId: orderId });
+  return res.status(200).send({
+    bookingCode: bookingCode,
+  });
 });
 
 router.post("/booking/momo_ipn", async (req, res) => {
@@ -302,8 +347,8 @@ router.post("/booking/cancelTicketByCode", async (req, res) => {
 });
 
 router.post("/booking/cancelTicketById", async (req, res) => {
-  var booking = await Booking.findById(req.body._id);
-
+  var booking = await Booking.findById(req.body.ticketId);
+  console.log(req.body.ticketId);
   if (!booking) {
     return res.status(404).json({
       error: "Not a valid bookingCode",
@@ -318,11 +363,36 @@ router.post("/booking/cancelTicketById", async (req, res) => {
     booking.status = statusBookingRemove;
     booking.cancelDate = new Date();
     booking.save();
+    // console.log(booking);
     res.status(200).json({
       message: "Booking remove successfully!",
     });
   } catch (err) {
     res.status(500).send(err);
+  }
+});
+
+router.post("/booking/cancelBooking", async (req, res) => {
+  try {
+    await Booking.deleteMany({ bookingCode: req.body.bookingCode });
+    res.status(200).send({ message: "Delete Successful!" });
+  } catch (error) {
+    res.send(error.response);
+  }
+});
+
+router.post("/booking/update", async (req, res) => {
+  const payload = req.body;
+  try {
+    await Booking.updateMany(
+      { bookingCode: payload.bookingCode },
+      { paymentType: payload.paymentType },
+      function (err) {
+        res.send({ error: err });
+      }
+    );
+  } catch (error) {
+    res.send({ message: error.response });
   }
 });
 

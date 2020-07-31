@@ -35,6 +35,7 @@ const bookingSchema = mongoose.Schema({
     type: Date,
     default: undefined,
   },
+  paymentType: { type: String, default: undefined },
 });
 
 mongoose.model("Booking", bookingSchema);
