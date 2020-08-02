@@ -11,7 +11,7 @@ const Booking = mongoose.model("Booking");
 
 router.get("/seatmap", async (req, res) => {
   const params = req.query;
-  console.log(params);
+  // console.log(params);
   const data = {
     vehicleId: params.vehicleId,
     departureId: params.departureId,

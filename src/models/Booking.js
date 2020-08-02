@@ -36,6 +36,12 @@ const bookingSchema = mongoose.Schema({
     default: undefined,
   },
   paymentType: { type: String, default: undefined },
+  coupon: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Coupon",
+    default: undefined,
+  },
+  qrCode: { type: String, default: undefined },
 });
 
 mongoose.model("Booking", bookingSchema);

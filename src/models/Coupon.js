@@ -2,13 +2,7 @@ const mongoose = require("mongoose");
 
 const paymentSchema = mongoose.Schema({
   booking: { type: mongoose.Schema.Types.ObjectId, ref: "Booking" },
-  coupon: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Coupon",
-    default: null,
-  },
-  price: { type: Number },
-  pricePayment: { type: Number },
+  amount: { type: Number },
   paymentTime: { type: Date, default: Date.now() },
 });
 
