@@ -10,6 +10,7 @@ const ManagementAdmin = mongoose.model("ManagementAdmin");
 const Agent = mongoose.model("Agent");
 const Payment = mongoose.model("Payment");
 const RouteDeparture = mongoose.model("RouteDeparture");
+const Const = mongoose.model("Const");
 const Booking = mongoose.model("Booking");
 
 
@@ -262,7 +263,7 @@ router.post("/admin/changepassword", async (req, res) => {
 });
 
 
-router.get("/statistical", async (req, res) => {
+router.post("/statistical", async (req, res) => {
   let data = req.body;
   var statusRouteComplete = await Const.findOne({
     type: "trang_thai_hanh_trinh",
@@ -273,7 +274,7 @@ router.get("/statistical", async (req, res) => {
     value: "da_di",
   });
   let allBookings = await Booking.find();
-  const routeDepartures = await RouteDeparture.find()
+  let routeDepartures = await RouteDeparture.find()
     .populate({
       path: "route",
       model: "Route",
@@ -288,7 +289,10 @@ router.get("/statistical", async (req, res) => {
     });
 
 
-  let fn_DateCompare = async (DateA, DateB)=> {
+  let fn_DateCompare = async (dateA, dateB)=> {
+    let DateA = new Date(dateA);
+    let DateB = new Date(dateB);
+
     var msDateA = Date.UTC(DateA.getFullYear(), DateA.getMonth()+1, DateA.getDate());
     var msDateB = Date.UTC(DateB.getFullYear(), DateB.getMonth()+1, DateB.getDate());
     if (parseFloat(msDateA) < parseFloat(msDateB))
@@ -332,12 +336,12 @@ router.get("/statistical", async (req, res) => {
     }, {});
   };
   let routeDepartureSelectData = [];
-  routeDepartures = routeDepartures.filter(e=>e.route.vehicle.agent._id.toString() == data.agentId 
+  routeDepartures = routeDepartures.filter((e) => e.route.vehicle.agent._id.toString() == data.agentId 
                     && e.status.toString() == statusRouteComplete._id.toString());
   for(let routeDeparture of routeDepartures){
-    if(fn_DateCompare(data.fromdate,routeDeparture.departureDate)== -1){
-      if(fn_DateCompare(data.todate ,routeDeparture.departureDate) == 1){
-        let data = getStatistical(routeDeparture,allBookings);
+    if(await fn_DateCompare(data.fromdate,routeDeparture.departureDate) == -1){
+      if(await fn_DateCompare(data.todate ,routeDeparture.departureDate) == 1){
+        let data = await getStatistical(routeDeparture,allBookings);
         routeDepartureSelectData.push(data);
       }
     }

@@ -14,32 +14,39 @@ const Coupon = mongoose.model("Coupon");
 
 let getAgentForAdmin = async (adminId) => {
   let adminMmgs = await ManagementAdmin.find();
-  let agents = adminMmgs.filter(
-    (e) => e.admin.toString() == adminId && e.agent !== null
-  );
+  let agentList = await Agent.find();
+  let agents = adminMmgs.filter(e => e.admin.toString() == adminId && e.agent !== null);
   if (agents.length == 0) {
-    agents = adminMmgs;
+    agents = agentList;
+    agents = agents.map(e => e._id.toString());
+  }else{
+    agents = agents.filter(e => e.agent).map(e => e.agent.toString());
   }
-  agents = agents.filter((e) => e.agent).map((e) => e.agent.toString());
 
   return [...new Set(agents)];
 };
 
 let getAgentForAdminRoot = async (adminId) => {
+  let agentList = await Agent.find();
   let adminMmgs = await ManagementAdmin.find();
   let agents = adminMmgs.filter(
     (e) => e.admin.toString() == adminId && e.agent !== null && e.isroot
   );
   if (agents.length == 0) {
-    agents = adminMmgs;
+    agents = agentList;
+    agents = agents.map(e => e._id.toString());
+  }else{
+    agents = agents.filter(e => e.agent).map(e => e.agent.toString());
   }
-  agents = agents.filter((e) => e.agent).map((e) => e.agent.toString());
 
   return [...new Set(agents)];
 };
 
 router.get("/agent-by-admin/:admin_id", async (req, res) => {
-  const agents = await Agent.find();
+  let agents = await Agent.find();
+  // if(req.params.admin_id == "5ec2add03694f0452c7d8115"){
+  //   return res.status(200).send(agents);
+  // }
   let agentForAdminIds = await getAgentForAdmin(req.params.admin_id);
 
   let results = [];
@@ -52,7 +59,10 @@ router.get("/agent-by-admin/:admin_id", async (req, res) => {
 });
 
 router.get("/agent-by-adminroot/:admin_id", async (req, res) => {
-  const agents = await Agent.find();
+  let agents = await Agent.find();
+  // if(req.params.admin_id=="5ec2add03694f0452c7d8115"){
+  //   return res.status(200).send(agents);
+  // }
   let agentForAdminIds = await getAgentForAdminRoot(req.params.admin_id);
 
   let results = [];
@@ -153,6 +163,7 @@ router.post("/agent/addagent", async (req, res) => {
   const agent = new Agent({
     name: data.name,
     cancelfee: data.cancelfee,
+    priceToDistance: data.priceToDistance
   });
 
   const locationFrom = new Location({
