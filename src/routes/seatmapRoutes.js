@@ -24,6 +24,11 @@ router.get("/seatmap", async (req, res) => {
     populate: { path: "type orderType" },
   });
 
+  var statusBookingRemove = await Const.findOne({
+    type: "trang_thai_dat_cho",
+    value: "da_huy",
+  });
+
   if (data.departureId) {
     var querybooking = { routeDeparture: data.departureId };
     var booking = await Booking.find(querybooking).populate("seatStatus");
@@ -33,7 +38,7 @@ router.get("/seatmap", async (req, res) => {
     if (seat.seatNumber) {
       let seatState = { seatStatus: "trong", displayStatus: "Ghế trống" };
       if (booking) {
-        let book = booking.find((e) => e.seatNumber == seat.seatNumber);
+        let book = booking.find((e) => e.seatNumber == seat.seatNumber && e.status !== statusBookingRemove);
         if (book) {
           seatState = {
             seatStatus: book.seatStatus.value,
