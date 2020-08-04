@@ -62,13 +62,14 @@ var byOrder = (a, b) => {
 
 let getAgentForAdmin = async (adminId) => {
   let adminMmgs = await ManagementAdmin.find();
-  let agents = adminMmgs.filter(
-    (e) => e.admin.toString() == adminId && e.agent !== null
-  );
+  let agentList = await Agent.find();
+  let agents = adminMmgs.filter(e => e.admin.toString() == adminId && e.agent !== null);
   if (agents.length == 0) {
-    agents = adminMmgs;
+    agents = agentList;
+    agents = agents.map(e => e._id.toString());
+  }else{
+    agents = agents.filter(e => e.agent).map(e => e.agent.toString());
   }
-  agents = agents.filter((e) => e.agent).map((e) => e.agent.toString());
 
   return [...new Set(agents)];
 };
@@ -1103,6 +1104,14 @@ router.get("/find-routes", async (req, resp) => {
     let month = selectedDate.getMonth() + 1;
     let year = selectedDate.getFullYear();
 
+    //get start Date
+    let startDate = moment(
+      `${year}-${month}-${date} 00:00:00`,
+      "YYYY-MM-DD HH:mm:ss"
+    ).add(parseInt(startTime[0]), "hours")
+    .add(parseInt(startTime[1]), "minutes")
+    .add(startTimeLength, "hours");
+
     let departure = departures.find(
       (e) =>
         e.route.toString() == prop &&
@@ -1153,6 +1162,7 @@ router.get("/find-routes", async (req, resp) => {
             agentDetails: agentDetails,
             startLocation: startAddress,
             endLocation: endAddress,
+            startDate: startDate.format("MM/DD/YYYY"),
             startTime: startHour.format("HH:mm"),
             endTime: endHour.format("HH:mm"),
             price: (disEndLength - disStartLength) * pricePerKm,

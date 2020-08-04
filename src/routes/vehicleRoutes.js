@@ -14,11 +14,14 @@ const router = express.Router();
 
 let getAgentForAdmin = async (adminId) =>{
   let adminMmgs = await ManagementAdmin.find();
+  let agentList = await Agent.find();
   let agents = adminMmgs.filter(e => e.admin.toString() == adminId && e.agent !== null);
   if (agents.length == 0) {
-    agents = adminMmgs;
+    agents = agentList;
+    agents = agents.map(e => e._id.toString());
+  }else{
+    agents = agents.filter(e => e.agent).map(e => e.agent.toString());
   }
-  agents = agents.filter(e => e.agent).map(e => e.agent.toString());
 
   return [...new Set(agents)];
 };
