@@ -593,6 +593,10 @@ router.get("/find-routes", async (req, resp) => {
     let validRoute = [];
     for (let routeItem of allDetailRoutes) {
       let temp = groupNext(routeItem);
+      // check số chuyến không được lớn hơn 3
+      if(temp.length > 3){
+        continue;
+      }
       let startTime = new Date(routeData.departureDate);
       startTime = moment(
         `${startTime.getFullYear()}-${
