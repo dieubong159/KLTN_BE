@@ -965,10 +965,10 @@ router.get("/find-routes", async (req, resp) => {
         }
 
         let endTime = moment(
-          mapRoutes[mapRoutes.length - 1].endDay,
-          "DD-MM-YYYY HH:mm"
+          mapRoutes[mapRoutes.length - 1].endDate,
+          "MM-DD-YYYY HH:mm"
         );
-        let startTime = moment(mapRoutes[0].startDay, "DD-MM-YYYY HH:mm");
+        let startTime = moment(mapRoutes[0].startDate, "MM-DD-YYYY HH:mm");
 
         let diffTime = endTime.valueOf() - startTime.valueOf();
         diffTime = moment.duration(diffTime, "milliseconds").asDays();
