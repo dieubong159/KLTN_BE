@@ -945,7 +945,7 @@ router.get("/find-routes", async (req, resp) => {
         startLocation: startAddress,
         endLocation: endAddress,
         startDate: routeDetail.startTime.format("MM/DD/YYYY"),
-        endDate: endTime.format("DD-MM-YYYY HH:mm"),
+        endDate: endTime.format("DD/MM/YYYY"),
         startTime: timeAndPrice.startHour.format("HH:mm"),
         endTime: timeAndPrice.endHour.format("HH:mm"),
         price: timeAndPrice.price,
