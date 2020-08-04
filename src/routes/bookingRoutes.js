@@ -233,23 +233,94 @@ router.get("/booking/:userId", async (req, res) => {
   const userId = req.params.userId;
   console.log(userId);
   try {
-    const booking = await Booking.find({ user: userId })
-      .populate("status seatStatus")
-      .populate({
-        path: "routeDeparture",
-        populate: {
-          path: "route",
-          model: "Route",
-          populate: {
-            path: "startLocation endLocation vehicle",
-            populate: { path: "type agent" },
-          },
+    // const bookings = await Booking.find({ user: userId })
+    //   .populate("status seatStatus")
+    //   .populate({
+    //     path: "routeDeparture",
+    //     populate: {
+    //       path: "route",
+    //       model: "Route",
+    //       populate: {
+    //         path: "startLocation endLocation vehicle",
+    //         populate: { path: "type agent" },
+    //       },
+    //     },
+    //   });
+    const groupBookingCodes = await Booking.aggregate([
+      {
+        $match: {
+          user: mongoose.Types.ObjectId(userId),
         },
-      });
-    if (booking) {
-      res.status(200).send(booking);
+      },
+      {
+        $group: {
+          _id: "$bookingCode",
+        },
+      },
+    ]);
+    // console.log(groupBookingCodes.length);
+    let results = [];
+    if (groupBookingCodes.length !== 0) {
+      for (let code of groupBookingCodes) {
+        const groupBooking = await Booking.aggregate([
+          {
+            $match: {
+              bookingCode: code._id,
+            },
+          },
+          {
+            $group: {
+              _id: "$_id",
+              bookingCode: { $first: "$bookingCode" },
+              userInformation: { $first: "$bookingInformation" },
+              price: { $first: "$price" },
+              seatNumber: { $first: "$seatNumber" },
+              seatStatus: { $first: "$seatStatus" },
+              routeDeparture: { $first: "$routeDeparture" },
+              status: { $first: "$status" },
+              cancelDate: { $first: "$cancelDate" },
+              paymentType: { $first: "$paymentType" },
+              qrCode: { $first: "$qrCode" },
+              coupon: { $first: "$coupon" },
+            },
+          },
+        ]);
+        if (groupBooking.length !== 0) {
+          const bookings = await Booking.populate(groupBooking, {
+            path: "seatStatus status routeDeparture coupon",
+            populate: {
+              path: "route",
+              model: "Route",
+              populate: {
+                path: "startLocation endLocation vehicle",
+                populate: { path: "type agent" },
+              },
+            },
+          });
+          bookings.sort(function (a, b) {
+            if (
+              a.routeDeparture.departureDate.getTime() ===
+              b.routeDeparture.departureDate.getTime()
+            ) {
+              return (
+                parseInt(a.routeDeparture.route.startTime.substr(0, 2)) -
+                parseInt(b.routeDeparture.route.startTime.substr(0, 2))
+              );
+            } else {
+              return (
+                a.routeDeparture.departureDate.getTime() -
+                b.routeDeparture.departureDate.getTime()
+              );
+            }
+          });
+          // console.log(bookings);
+          results.push(bookings);
+        }
+      }
     }
+    res.status(200).send(results);
   } catch (error) {
+    console.log(error);
     res.send(error);
   }
 });
@@ -341,7 +412,7 @@ router.post("/booking/momo_ipn", async (req, res) => {
   console.log("MOMO IPN: ");
   console.log(req.body);
   // console.log("It goes here");
-  if (payload.errorCode === "0") {
+  if (payload.errorCode === "0" || payload.message === "Thành công") {
     console.log(payload.orderId);
     const response = await confirmPayment(payload.orderId);
     if (response) {
@@ -401,31 +472,31 @@ router.post("/booking/cancelTicketByCode", async (req, res) => {
   });
 });
 
-router.post("/booking/cancelTicketById", async (req, res) => {
-  var booking = await Booking.findById(req.body.ticketId);
-  console.log(req.body.ticketId);
-  if (!booking) {
-    return res.status(404).json({
-      error: "Not a valid bookingCode",
-    });
-  }
+// router.post("/booking/cancelTicketById", async (req, res) => {
+//   var booking = await Booking.findById(req.body.ticketId);
+//   console.log(req.body.ticketId);
+//   if (!booking) {
+//     return res.status(404).json({
+//       error: "Not a valid bookingCode",
+//     });
+//   }
 
-  var statusBookingRemove = await Const.findOne({
-    type: "trang_thai_dat_cho",
-    value: "da_huy",
-  });
-  try {
-    booking.status = statusBookingRemove;
-    booking.cancelDate = new Date();
-    booking.save();
-    // console.log(booking);
-    res.status(200).json({
-      message: "Booking remove successfully!",
-    });
-  } catch (err) {
-    res.status(500).send(err);
-  }
-});
+//   var statusBookingRemove = await Const.findOne({
+//     type: "trang_thai_dat_cho",
+//     value: "da_huy",
+//   });
+//   try {
+//     booking.status = statusBookingRemove;
+//     booking.cancelDate = new Date();
+//     booking.save();
+//     // console.log(booking);
+//     res.status(200).json({
+//       message: "Booking remove successfully!",
+//     });
+//   } catch (err) {
+//     res.status(500).send(err);
+//   }
+// });
 
 router.post("/booking/cancelBooking", async (req, res) => {
   try {
@@ -524,55 +595,6 @@ router.post("/booking/update", async (req, res) => {
 });
 
 router.post("/confirmPayment", async (req, res) => {
-  // var data = req.body;
-
-  // var coupon;
-  // var discountRate = 0;
-  // if (!data.coupon) {
-  //   coupon = null;
-  // } else {
-  //   var coupons = await Coupon.find().populate("code");
-  //   var couponCheck = coupons.find((e) => e._id.toString() == data.coupon);
-  //   if (!couponCheck) {
-  //     coupon = null;
-  //   } else {
-  //     coupon = couponCheck;
-  //     discountRate = couponCheck.discountRate;
-  //   }
-  // }
-
-  // var bookings = await Booking.find();
-  // bookings = bookings.filter((e) => e.bookingCode == data.bookingCode);
-
-  // if (!bookings) {
-  //   return res.status(404).json({
-  //     error: "Not a valid bookingCode",
-  //   });
-  // }
-  // try {
-  //   for (let booking of bookings) {
-  //     let pricePayment = booking.price * ((100 - discountRate) / 100);
-  //     var payment = new Payment({
-  //       booking: booking,
-  //       amount: pricePayment,
-  //       coupon: coupon,
-  //     });
-
-  //     var constSeats = await Const.findOne({
-  //       type: "trang_thai_ghe",
-  //       value: "da_dat",
-  //     });
-  //     booking.seatStatus = constSeats;
-  //     booking.save();
-
-  //     payment.save();
-  //   }
-  //   res.status(200).json({
-  //     message: "Payment added successfully!",
-  //   });
-  // } catch (error) {
-  //   res.send(error);
-  // }
   const response = await confirmPayment(req.body.bookingCode);
   if (response === 200) {
     res.status(200).send({ message: "Confirmed Payment!" });

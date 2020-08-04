@@ -246,6 +246,7 @@ router.get("/find-routes", async (req, resp) => {
   // set booking hết hạn
   setBookingTimeout(allBookings);
 
+  // try{
   let routeDetailByStartLocs = allRouteDetails.filter(
     (e) =>
       e.station.stationStop == routeData.startLocation ||
@@ -1162,7 +1163,7 @@ router.get("/find-routes", async (req, resp) => {
       });
     }
   }
-
+  console.log(dataFinal);
   return resp.send(dataFinal);
 });
 

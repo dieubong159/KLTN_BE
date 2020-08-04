@@ -42,6 +42,16 @@ const bookingSchema = mongoose.Schema({
     default: undefined,
   },
   qrCode: { type: String, default: undefined },
+  startLocation: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Location",
+  },
+  endLocation: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Location",
+  },
+  startTime: Date,
+  endTime: Date,
 });
 
 mongoose.model("Booking", bookingSchema);
