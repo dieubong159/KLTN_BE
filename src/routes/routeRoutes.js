@@ -1111,6 +1111,14 @@ router.get("/find-routes", async (req, resp) => {
     .add(parseInt(startTime[1]), "minutes")
     .add(startTimeLength, "hours");
 
+    let endDate = moment(
+      `${year}-${month}-${date} 00:00:00`,
+      "YYYY-MM-DD HH:mm:ss"
+    )
+      .add(parseInt(startTime[0]), "hours")
+      .add(parseInt(startTime[1]), "minutes")
+      .add(endTimeLength, "hours");
+
     let departure = departures.find(
       (e) =>
         e.route.toString() == prop &&
@@ -1162,6 +1170,7 @@ router.get("/find-routes", async (req, resp) => {
             startLocation: startAddress,
             endLocation: endAddress,
             startDate: startDate.format("MM/DD/YYYY"),
+            endDate: endDate.format("MM/DD/YYYY"),
             startTime: startHour.format("HH:mm"),
             endTime: endHour.format("HH:mm"),
             price: (disEndLength - disStartLength) * pricePerKm,
