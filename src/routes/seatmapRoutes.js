@@ -8,6 +8,7 @@ const Vehicle = mongoose.model("Vehicle");
 const Agent = mongoose.model("Agent");
 const Route = mongoose.model("Route");
 const Booking = mongoose.model("Booking");
+const Const = mongoose.model("Const");
 
 router.get("/seatmap", async (req, res) => {
   const params = req.query;
@@ -38,7 +39,10 @@ router.get("/seatmap", async (req, res) => {
     if (seat.seatNumber) {
       let seatState = { seatStatus: "trong", displayStatus: "Ghế trống" };
       if (booking) {
-        let book = booking.find((e) => e.seatNumber == seat.seatNumber && e.status !== statusBookingRemove);
+        let book = booking.find(
+          (e) =>
+            e.seatNumber == seat.seatNumber && e.status !== statusBookingRemove
+        );
         if (book) {
           seatState = {
             seatStatus: book.seatStatus.value,

@@ -11,16 +11,19 @@ const User = mongoose.model("User");
 const Review = mongoose.model("Review");
 const ManagementAdmin = mongoose.model("ManagementAdmin");
 const Coupon = mongoose.model("Coupon");
+const Booking = mongoose.model("Booking");
 
 let getAgentForAdmin = async (adminId) => {
   let adminMmgs = await ManagementAdmin.find();
   let agentList = await Agent.find();
-  let agents = adminMmgs.filter(e => e.admin.toString() == adminId && e.agent !== null);
+  let agents = adminMmgs.filter(
+    (e) => e.admin.toString() == adminId && e.agent !== null
+  );
   if (agents.length == 0) {
     agents = agentList;
-    agents = agents.map(e => e._id.toString());
-  }else{
-    agents = agents.filter(e => e.agent).map(e => e.agent.toString());
+    agents = agents.map((e) => e._id.toString());
+  } else {
+    agents = agents.filter((e) => e.agent).map((e) => e.agent.toString());
   }
 
   return [...new Set(agents)];
@@ -34,9 +37,9 @@ let getAgentForAdminRoot = async (adminId) => {
   );
   if (agents.length == 0) {
     agents = agentList;
-    agents = agents.map(e => e._id.toString());
-  }else{
-    agents = agents.filter(e => e.agent).map(e => e.agent.toString());
+    agents = agents.map((e) => e._id.toString());
+  } else {
+    agents = agents.filter((e) => e.agent).map((e) => e.agent.toString());
   }
 
   return [...new Set(agents)];
@@ -93,7 +96,8 @@ router.get("/agent/review", async (req, res) => {
 router.post("/agent/review", async (req, res) => {
   const payload = req.body;
   const user = await User.findById(payload.user);
-  const agent = await Agent.findById(payload.agent);
+  const agent = await Agent.findById(payload.route.vehicle.agent._id);
+  const bookingCode = payload.bookingCode;
 
   if (user && agent) {
     try {
@@ -101,6 +105,7 @@ router.post("/agent/review", async (req, res) => {
         user: payload.user,
         rating: payload.rate,
         comment: payload.review,
+        route: payload.route,
       });
       review.save();
 
@@ -123,6 +128,22 @@ router.post("/agent/review", async (req, res) => {
         }
       );
 
+      const bookings = await Booking.find({
+        bookingCode: bookingCode,
+      }).populate({
+        path: "routeDeparture",
+        populate: "route",
+      });
+      if (bookings.length !== 0) {
+        bookings.filter((e) => {
+          e.routeDeparture.route._id === payload.route._id;
+        });
+        Booking.updateMany({ _id: bookings._id }, { reviewed: true }, function (
+          err
+        ) {
+          if (err) res.send({ error: err });
+        });
+      }
       // console.log("Agent found: ");
       // console.log(doc);
       // res.status(200).send({ message: "Review successfully" });
@@ -163,7 +184,7 @@ router.post("/agent/addagent", async (req, res) => {
   const agent = new Agent({
     name: data.name,
     cancelfee: data.cancelfee,
-    priceToDistance: data.priceToDistance
+    priceToDistance: data.priceToDistance,
   });
 
   const locationFrom = new Location({

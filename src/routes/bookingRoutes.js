@@ -2,6 +2,8 @@ const express = require("express");
 const mongoose = require("mongoose");
 const crypto = require("crypto");
 const axios = require("axios");
+const { start } = require("repl");
+const moment = require("moment");
 
 const Booking = mongoose.model("Booking");
 const Route = mongoose.model("Route");
@@ -21,7 +23,7 @@ var accessKey = "6pnCTPbCaPV5wew2";
 var serectkey = "ZmdAGeuX53DbdXPGrrISDEzRngk2QRwg";
 var orderInfo = "Thanh toán bằng Momo";
 // var returnUrl = "";
-var notifyurl = "https://a76e0e78a692.ngrok.io/booking/momo_ipn";
+var notifyurl = "https://ea43cd94c87b.ngrok.io/booking/momo_ipn";
 var requestType = "captureMoMoWallet";
 var storeId = "gVOSOzYsIuCrf8cejBG4";
 var extraData = "";
@@ -69,6 +71,7 @@ const confirmPayment = async (bookingCode) => {
         value: "da_dat",
       });
       booking.seatStatus = constSeats;
+      booking.reviewed = false;
       booking.save();
       console.log(payment);
       payment.save();
@@ -233,19 +236,6 @@ router.get("/booking/:userId", async (req, res) => {
   const userId = req.params.userId;
   console.log(userId);
   try {
-    // const bookings = await Booking.find({ user: userId })
-    //   .populate("status seatStatus")
-    //   .populate({
-    //     path: "routeDeparture",
-    //     populate: {
-    //       path: "route",
-    //       model: "Route",
-    //       populate: {
-    //         path: "startLocation endLocation vehicle",
-    //         populate: { path: "type agent" },
-    //       },
-    //     },
-    //   });
     const groupBookingCodes = await Booking.aggregate([
       {
         $match: {
@@ -282,6 +272,11 @@ router.get("/booking/:userId", async (req, res) => {
               paymentType: { $first: "$paymentType" },
               qrCode: { $first: "$qrCode" },
               coupon: { $first: "$coupon" },
+              startLocation: { $first: "$startLocation" },
+              endLocation: { $first: "$endLocation" },
+              startDate: { $first: "$startDate" },
+              endDate: { $first: "$endDate" },
+              reviewed: { $first: "$reviewed" },
             },
           },
         ]);
@@ -298,20 +293,9 @@ router.get("/booking/:userId", async (req, res) => {
             },
           });
           bookings.sort(function (a, b) {
-            if (
-              a.routeDeparture.departureDate.getTime() ===
-              b.routeDeparture.departureDate.getTime()
-            ) {
-              return (
-                parseInt(a.routeDeparture.route.startTime.substr(0, 2)) -
-                parseInt(b.routeDeparture.route.startTime.substr(0, 2))
-              );
-            } else {
-              return (
-                a.routeDeparture.departureDate.getTime() -
-                b.routeDeparture.departureDate.getTime()
-              );
-            }
+            const TimeA = moment(a.startDate, "MM/DD/YYYY hh:mm");
+            const TimeB = moment(b.startDate, "MM/DD/YYYY hh:mm");
+            return TimeA.get() - TimeB.get();
           });
           // console.log(bookings);
           results.push(bookings);
@@ -360,8 +344,9 @@ router.post("/booking", async (req, res) => {
     console.log("Check booking code exists: " + error);
   }
 
-  bookingDetail.forEach((e) => {
+  for (let e of bookingDetail) {
     let departureId = e.departureId;
+    // console.log(startTime);
     if (!departureId) {
       let departureDate = new Date(e.startDate);
       // console.log(departureDate.getDate());
@@ -382,7 +367,7 @@ router.post("/booking", async (req, res) => {
       // console.log(departureId);
     }
     try {
-      e.seats.forEach((seat) => {
+      for (let seat of e.seats) {
         const bookingInfo = {
           routeDeparture: departureId,
           seatNumber: seat.seatNumber,
@@ -392,16 +377,20 @@ router.post("/booking", async (req, res) => {
           seatStatus: constSeats,
           status: constBooking,
           bookingCode: bookingCode,
+          startLocation: e.startLocation,
+          endLocation: e.endLocation,
+          startDate: e.startDate,
+          endDate: e.endDate,
         };
         // console.log(bookingInfo);
         const booking = new Booking(bookingInfo);
         booking.save();
-      });
+      }
       // console.log(booking);
     } catch (error) {
       res.status(502).send(error.response);
     }
-  });
+  }
   return res.status(200).send({
     bookingCode: bookingCode,
   });
@@ -412,9 +401,16 @@ router.post("/booking/momo_ipn", async (req, res) => {
   console.log("MOMO IPN: ");
   console.log(req.body);
   // console.log("It goes here");
-  if (payload.errorCode === "0" || payload.message === "Thành công") {
-    console.log(payload.orderId);
+  if (payload.errorCode === "0") {
+    // console.log(payload.orderId);
     const response = await confirmPayment(payload.orderId);
+    if (response) {
+      console.log(response);
+    }
+  }
+  if (payload.status_code === "0") {
+    // console.log(payload.orderId);
+    const response = await confirmPayment(payload.order_Id);
     if (response) {
       console.log(response);
     }
