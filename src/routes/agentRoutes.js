@@ -12,6 +12,7 @@ const Review = mongoose.model("Review");
 const ManagementAdmin = mongoose.model("ManagementAdmin");
 const Coupon = mongoose.model("Coupon");
 const Booking = mongoose.model("Booking");
+const Route = mongoose.model("Route");
 
 let getAgentForAdmin = async (adminId) => {
   let adminMmgs = await ManagementAdmin.find();
@@ -95,11 +96,17 @@ router.get("/agent/review", async (req, res) => {
 
 router.post("/agent/review", async (req, res) => {
   const payload = req.body;
+  console.log(payload);
   const user = await User.findById(payload.user);
-  const agent = await Agent.findById(payload.route.vehicle.agent._id);
+  const route = await Route.findById(payload.route).populate({
+    path: "vehicle",
+    populate: "agent",
+  });
+  const agent = route.vehicle.agent;
+  // if (route) console.log(route);
   const bookingCode = payload.bookingCode;
 
-  if (user && agent) {
+  if (user && route) {
     try {
       const review = new Review({
         user: payload.user,
@@ -114,17 +121,19 @@ router.post("/agent/review", async (req, res) => {
         newReviewRate =
           (agent.reviewRate * agent.reviews.length + review.rating) /
           (agent.reviews.length + 1);
+        newReviewRate.toFixed(1);
       } else {
         newReviewRate = review.rating;
+        e;
       }
 
       Agent.findOneAndUpdate(
         { _id: agent._id },
         { $push: { reviews: review._id }, $set: { reviewRate: newReviewRate } },
         { upsert: false },
-        function (err, doc) {
+        function (err) {
           if (err) return res.status(500).send({ error: err });
-          res.status(200).send(doc);
+          // res.status(200).send(doc);
         }
       );
 
@@ -136,17 +145,15 @@ router.post("/agent/review", async (req, res) => {
       });
       if (bookings.length !== 0) {
         bookings.filter((e) => {
-          e.routeDeparture.route._id === payload.route._id;
+          e.routeDeparture.route._id === payload.route;
         });
-        Booking.updateMany({ _id: bookings._id }, { reviewed: true }, function (
-          err
-        ) {
-          if (err) res.send({ error: err });
-        });
+        for (let booking of bookings) {
+          await Booking.findByIdAndUpdate(booking._id, { reviewed: true });
+        }
       }
       // console.log("Agent found: ");
-      // console.log(doc);
-      // res.status(200).send({ message: "Review successfully" });
+      // console.log(bookings.length);
+      res.status(200).send({ message: "Review successfully" });
     } catch (error) {
       console.log(error);
       res.send(error);
