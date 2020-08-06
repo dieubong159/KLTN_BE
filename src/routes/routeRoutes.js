@@ -335,7 +335,15 @@ router.get("/find-routes", async (req, resp) => {
       pathIndex++;
 
       if (u == d) {
-        foundRoutes.push(paths.slice(0, pathIndex));
+        let subRouteDetailPaths = paths.slice(0, pathIndex);
+
+        //check cung chuyen
+        let routeIds = [...new Set(subRouteDetailPaths.map(e => flatStations[e]).map(e => e.route.toString()))];
+        let runOrders = allRoute.filter(e => routeIds.some(i => i == e._id.toString())).map(e => e.isCorrectRoute);
+
+        if (runOrders.every(e => e) || runOrders.every(e => !e)) {
+          foundRoutes.push(subRouteDetailPaths);
+        }
       } else {
         for (let i = 0; i < flatStations.length; i++) {
           if (graphStations[u][i].isAdjacent && !visited[i]) {
@@ -482,7 +490,9 @@ router.get("/find-routes", async (req, resp) => {
           detailRoutes.push(temp);
         }
 
-        detailRoutes.forEach((e) => allDetailRoutes.push(e));
+        detailRoutes.forEach((e) => {
+          allDetailRoutes.push(e);
+        });
       }
     }
 
@@ -590,6 +600,13 @@ router.get("/find-routes", async (req, resp) => {
 
       return startTime;
     };
+
+    // let checkRouteValid = (routes) => {
+    //   let routeIds = routes.map(e => e[0].routeId);
+    //   let runOrders = allRoute.filter(e => routeIds.some(i => i == e._id.toString())).map(e => e.isCorrectRoute);
+
+    //   return runOrders.every(e => e) || runOrders.every(e => !e);
+    // }
 
     let validRoute = [];
     for (let routeItem of allDetailRoutes) {
