@@ -63,12 +63,14 @@ var byOrder = (a, b) => {
 let getAgentForAdmin = async (adminId) => {
   let adminMmgs = await ManagementAdmin.find();
   let agentList = await Agent.find();
-  let agents = adminMmgs.filter(e => e.admin.toString() == adminId && e.agent !== null);
+  let agents = adminMmgs.filter(
+    (e) => e.admin.toString() == adminId && e.agent !== null
+  );
   if (agents.length == 0) {
     agents = agentList;
-    agents = agents.map(e => e._id.toString());
-  }else{
-    agents = agents.filter(e => e.agent).map(e => e.agent.toString());
+    agents = agents.map((e) => e._id.toString());
+  } else {
+    agents = agents.filter((e) => e.agent).map((e) => e.agent.toString());
   }
 
   return [...new Set(agents)];
@@ -142,10 +144,10 @@ let setBookingTimeout = async (allbookings) => {
     type: "trang_thai_ghe",
     value: "giu_cho",
   });
-  let statusBookingRemove = await Const.findOne({
-    type: "trang_thai_dat_cho",
-    value: "da_huy",
-  });
+  // let statusBookingRemove = await Const.findOne({
+  //   type: "trang_thai_dat_cho",
+  //   value: "da_huy",
+  // });
   for (let booking of allbookings) {
     if (booking.seatStatus.toString() == statusSeatBooking._id.toString()) {
       let date = booking.bookingExpiredTime.getDate(),
@@ -170,8 +172,7 @@ let setBookingTimeout = async (allbookings) => {
         "YYYY-MM-DD HH:mm:ss"
       );
       if (todayMoment.isAfter(bookingExpiredTime)) {
-        booking.status = statusBookingRemove;
-        await booking.save();
+        await Booking.deleteOne(booking._id);
       }
     }
   }
@@ -612,7 +613,7 @@ router.get("/find-routes", async (req, resp) => {
     for (let routeItem of allDetailRoutes) {
       let temp = groupNext(routeItem);
       // check số chuyến không được lớn hơn 3
-      if(temp.length > 3){
+      if (temp.length > 3) {
         continue;
       }
       let startTime = new Date(routeData.departureDate);
@@ -1129,9 +1130,10 @@ router.get("/find-routes", async (req, resp) => {
     let startDate = moment(
       `${year}-${month}-${date} 00:00:00`,
       "YYYY-MM-DD HH:mm:ss"
-    ).add(parseInt(startTime[0]), "hours")
-    .add(parseInt(startTime[1]), "minutes")
-    .add(startTimeLength, "hours");
+    )
+      .add(parseInt(startTime[0]), "hours")
+      .add(parseInt(startTime[1]), "minutes")
+      .add(startTimeLength, "hours");
 
     let endDate = moment(
       `${year}-${month}-${date} 00:00:00`,

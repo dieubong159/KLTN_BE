@@ -5,9 +5,10 @@ const mongoose = require("mongoose");
 const User = mongoose.model("User");
 
 const router = express.Router();
+
 const nexmo = new Nexmo({
-  apiKey: "fe457d41",
-  apiSecret: "JNHErpDr8z9FCuIk",
+  apiKey: "a599ecb4",
+  apiSecret: "fe5pT8bv2KhtG8K7",
 });
 
 async function verify(number) {
