@@ -1010,7 +1010,46 @@ router.get("/find-routes", async (req, resp) => {
   );
   let routeDetailGroups = groupBy(routeDetails, "route");
 
-  let finalRouteDetails = [];
+  //tesst
+  let initTimeOfRoute = (routeId,time) => {
+    let route = allRoute.find((e) => e._id.toString() == routeId);
+    let routetime = route.startTime.split(":");
+
+    let temp = moment(
+      time.format("YYYY-MM-DD HH:mm:ss"),
+      "YYYY-MM-DD HH:mm:ss"
+    )
+
+    temp
+    .add(parseInt(routetime[0]), "hours")
+    .add(parseInt(routetime[1]), "minutes");
+
+    return temp;
+  };
+
+  let findTimeToStation = (time, stationRouteDetail) => {
+    let routeDetails = allRouteDetails.filter(
+      (e) =>
+        e.route.toString() == stationRouteDetail.route.toString() &&
+        e.orderRouteToStation <= stationRouteDetail.orderRouteToStation
+    );
+    routeDetails.sort(byOrder);
+
+    let temp = moment(
+      time.format("YYYY-MM-DD HH:mm:ss"),
+      "YYYY-MM-DD HH:mm:ss"
+    )
+
+    for (let detail of routeDetails) {
+      temp.add(detail.timeArrivingToStation, "hours");
+    }
+
+    return temp;
+  };
+  //end test
+
+  let schedules = [];
+  let startTimeToRoute = [];
   for (prop in routeDetailGroups) {
     let start = routeDetailGroups[prop].find(
       (e) =>
@@ -1024,21 +1063,54 @@ router.get("/find-routes", async (req, resp) => {
     );
 
     if (start.orderRouteToStation < end.orderRouteToStation) {
-      finalRouteDetails = finalRouteDetails.concat(routeDetailGroups[prop]);
+      let selectedDate = new Date(routeData.departureDate);
+      let date = selectedDate.getDate();
+      let month = selectedDate.getMonth() + 1;
+      let year = selectedDate.getFullYear();
+
+      //get start Date
+      let startTime = moment(
+        `${year}-${month}-${date} 00:00:00`,
+        "YYYY-MM-DD HH:mm:ss"
+      )
+
+      let inittime = initTimeOfRoute(prop,startTime);
+      let time = findTimeToStation(inittime,start);
+
+      let gettimeIniteTime = moment(
+        inittime.format("YYYY-MM-DD 00:00:00"),
+        "YYYY-MM-DD HH:mm:ss"
+      )
+      let gettimeToTime = moment(
+        time.format("YYYY-MM-DD 00:00:00"),
+        "YYYY-MM-DD HH:mm:ss"
+      )
+      let subDay = moment
+      .duration(gettimeToTime.valueOf() - gettimeIniteTime.valueOf(), "milliseconds")
+      .asDays()
+
+      startTime= startTime.subtract(subDay,"days");
+
+      let dateSelect = new Date(startTime.format("MM/DD/YYYY"))
+      let scheduleRoute = await RouteSchedule.findOne({
+        $and: [
+          { route: prop.toString() },
+          { dayOfWeek: dateSelect.getDay() },
+        ],
+      });
+      if(scheduleRoute){
+        startTimeToRoute.push({
+          route : prop,
+          date : dateSelect
+        });
+        schedules.push(scheduleRoute);
+      }
     }
   }
 
-  routes = [...new Set(finalRouteDetails.map((e) => e.route.toString()))];
-  let schedules = await RouteSchedule.find({
-    $and: [
-      { route: { $in: routes } },
-      { dayOfWeek: new Date(routeData.departureDate).getDay() },
-    ],
-  });
-
-  routes = schedules.map((e) => e.route);
+  routes = schedules.map((e) => e.route.toString());
   routes = await Route.find({ _id: { $in: routes } }).populate("vehicle");
-
+  
   routeDetails = routes.flatMap((e) =>
     allRouteDetails.filter((i) => i.route.toString() == e._id.toString())
   );
@@ -1121,7 +1193,10 @@ router.get("/find-routes", async (req, resp) => {
       (e) => e.agent.toString() == vehicle.agent.toString()
     );
 
-    let selectedDate = new Date(routeData.departureDate);
+    // get date to Route
+    let dateSelectToRoute = startTimeToRoute.find(e=>e.route== prop).date;
+
+    let selectedDate = new Date(dateSelectToRoute);
     let date = selectedDate.getDate();
     let month = selectedDate.getMonth() + 1;
     let year = selectedDate.getFullYear();
