@@ -545,13 +545,21 @@ router.get("/find-routes", async (req, resp) => {
 
     let findTimeToNextRouteDetail = (initTime, routeData) => {
       let currentRouteDetail = getRouteDetail(routeData);
-      let nextRouteDetail = allRouteDetails.find(
+      // let nextRouteDetail = allRouteDetails.find(
+      //   (e) =>
+      //     e.route.toString() == routeData.routeId &&
+      //     e.orderRouteToStation == currentRouteDetail.orderRouteToStation + 1
+      // );
+      let nextRouteDetail = allRouteDetails.filter(
         (e) =>
           e.route.toString() == routeData.routeId &&
-          e.orderRouteToStation == currentRouteDetail.orderRouteToStation + 1
+          e.orderRouteToStation > currentRouteDetail.orderRouteToStation
       );
 
-      initTime.add(nextRouteDetail.timeArrivingToStation, "hours");
+      for(let item of nextRouteDetail){
+        initTime.add(item.timeArrivingToStation, "hours");
+      }
+      //initTime.add(nextRouteDetail.timeArrivingToStation, "hours");
       return initTime;
     };
 
@@ -1009,8 +1017,8 @@ router.get("/find-routes", async (req, resp) => {
         diffTime = moment.duration(diffTime, "milliseconds").asDays();
 
         let totalPrice = mapRoutes.reduce((a, b) => a + b["price"], 0);
-
-        if(diffTime<=3){
+     
+        if(diffTime <= 3){
           dataFinal.push({
             totalTime: diffTime,
             totalPrice: totalPrice,
