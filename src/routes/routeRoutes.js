@@ -132,6 +132,7 @@ let setDepartureComplete = async (allRouteDetails, allbookings) => {
         );
         for (let booking of bookings) {
           booking.status = statusBookingComplete;
+          booking.reviewed = false;
           await booking.save();
         }
       }
@@ -339,10 +340,18 @@ router.get("/find-routes", async (req, resp) => {
         let subRouteDetailPaths = paths.slice(0, pathIndex);
 
         //check cung chuyen
-        let routeIds = [...new Set(subRouteDetailPaths.map(e => flatStations[e]).map(e => e.route.toString()))];
-        let runOrders = allRoute.filter(e => routeIds.some(i => i == e._id.toString())).map(e => e.isCorrectRoute);
+        let routeIds = [
+          ...new Set(
+            subRouteDetailPaths
+              .map((e) => flatStations[e])
+              .map((e) => e.route.toString())
+          ),
+        ];
+        let runOrders = allRoute
+          .filter((e) => routeIds.some((i) => i == e._id.toString()))
+          .map((e) => e.isCorrectRoute);
 
-        if (runOrders.every(e => e) || runOrders.every(e => !e)) {
+        if (runOrders.every((e) => e) || runOrders.every((e) => !e)) {
           foundRoutes.push(subRouteDetailPaths);
         }
       } else {
