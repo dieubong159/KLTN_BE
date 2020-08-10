@@ -356,14 +356,6 @@ router.get("/find-routes", async (req, resp) => {
 
       if (u == d) {
         let subRouteDetailPaths = paths.slice(0, pathIndex);
-
-        //check cung chuyen
-        // let routeIds = [...new Set(subRouteDetailPaths.map(e => flatStations[e]).map(e => e.route.toString()))];
-        // let runOrders = allRoute.filter(e => routeIds.some(i => i == e._id.toString())).map(e => e.isCorrectRoute);
-
-        // if (runOrders.every(e => e) || runOrders.every(e => !e)) {
-        //   foundRoutes.push(subRouteDetailPaths);
-        // }
         foundRoutes.push(subRouteDetailPaths);
       } else {
         for (let i = 0; i < flatStations.length; i++) {
@@ -514,10 +506,16 @@ router.get("/find-routes", async (req, resp) => {
       let route = allRoute.find((e) => e._id.toString() == routeId);
       let time = route.startTime.split(":");
 
-      startTime
+
+      let temp = moment(
+        startTime.format("YYYY-MM-DD HH:mm:ss"),
+        "YYYY-MM-DD HH:mm:ss"
+      )
+
+      temp
         .add(parseInt(time[0]), "hours")
         .add(parseInt(time[1]), "minutes");
-      return startTime;
+      return temp;
     };
 
     let getRouteDetail = (routeData) => {
@@ -536,11 +534,16 @@ router.get("/find-routes", async (req, resp) => {
       );
       routeDetails.sort(byOrder);
 
+      let temp = moment(
+        time.format("YYYY-MM-DD HH:mm:ss"),
+        "YYYY-MM-DD HH:mm:ss"
+      )
+
       for (let detail of routeDetails) {
-        time.add(detail.timeArrivingToStation, "hours");
+        temp.add(detail.timeArrivingToStation, "hours");
       }
 
-      return time;
+      return temp;
     };
 
     let findTimeToNextRouteDetail = (initTime, routeData) => {
@@ -550,6 +553,7 @@ router.get("/find-routes", async (req, resp) => {
       //     e.route.toString() == routeData.routeId &&
       //     e.orderRouteToStation == currentRouteDetail.orderRouteToStation + 1
       // );
+      //initTime.add(nextRouteDetail.timeArrivingToStation, "hours");
       let nextRouteDetail = allRouteDetails.filter(
         (e) =>
           e.route.toString() == routeData.routeId &&
@@ -559,7 +563,6 @@ router.get("/find-routes", async (req, resp) => {
       for(let item of nextRouteDetail){
         initTime.add(item.timeArrivingToStation, "hours");
       }
-      //initTime.add(nextRouteDetail.timeArrivingToStation, "hours");
       return initTime;
     };
 
@@ -623,6 +626,55 @@ router.get("/find-routes", async (req, resp) => {
       return startTime;
     };
 
+    let CheckSameDay = (startTime) =>{
+      let timetoStartTime = new Date(startTime.format("MM/DD/YYYY"));     
+      let startTimeDate = timetoStartTime.getDate();
+      let startTimeMonth = timetoStartTime.getMonth() + 1 ;
+      let startTimeYear = timetoStartTime.getFullYear();
+
+      //test
+      let timeToday = new Date();     
+      let timeDateToday = timeToday.getDate();
+      let timeMonthToday = timeToday.getMonth() + 1 ;
+      let timeYearToday = timeToday.getFullYear();
+      let timeTodayMoment = moment(
+        `${timeToday.getFullYear()}-${
+          timeToday.getMonth() + 1
+        }-${timeToday.getDate()} ${timeToday.getHours()}:${timeToday.getMinutes()}:00`,
+        "YYYY-MM-DD HH:mm:ss"
+      ).add(2, "hours");
+
+      if(timeDateToday == startTimeDate && timeMonthToday == startTimeMonth && timeYearToday == startTimeYear){
+        if (!timeTodayMoment.isBefore(startTime, "hours")) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    let findTimeToSchedule = (routeId,initTime,timeToRoute) =>{
+      let gettimeIniteTime = moment(
+        initTime.format("YYYY-MM-DD 00:00:00"),
+        "YYYY-MM-DD HH:mm:ss"
+      )
+      let gettimeToRoute = moment(
+        timeToRoute.format("YYYY-MM-DD 00:00:00"),
+        "YYYY-MM-DD HH:mm:ss"
+      )
+      let subDay = moment
+      .duration(gettimeToRoute.valueOf() - gettimeIniteTime.valueOf(), "milliseconds")
+      .asDays()
+
+      let time = initTime.subtract(subDay,"days");
+      let dateSelect = new Date(time.format("MM/DD/YYYY"))
+      let scheduleRoute = allSchedules.find((e)=> e.route == routeId.toString() && e.dayOfWeek == dateSelect.getDay());
+
+      if(scheduleRoute){
+        return timeToRoute.subtract(subDay,"days");
+      }
+      return null;
+    };
+
     // let checkRouteValid = (routes) => {
     //   let routeIds = routes.map(e => e[0].routeId);
     //   let runOrders = allRoute.filter(e => routeIds.some(i => i == e._id.toString())).map(e => e.isCorrectRoute);
@@ -636,26 +688,46 @@ router.get("/find-routes", async (req, resp) => {
 
     let validRoute = [];
     for (let routeItem of allDetailRoutes) {
+      let validCheck = true; 
       let temp = groupNext(routeItem);
       // check số chuyến không được lớn hơn 3
       if (temp.length > 3) {
         continue;
       }
-      let startTime = new Date(routeData.departureDate);
+      let startTime = new Date(routeData.departureDate);     
       startTime = moment(
         `${startTime.getFullYear()}-${
           startTime.getMonth() + 1
         }-${startTime.getDate()} 00:00:00`,
         "YYYY-MM-DD HH:mm:ss"
       );
+
       let startTimes = [];
       for (let i = 0; i < temp.length; i++) {
+        if(!validCheck){
+          break;
+        }
         for (let j = 0; j < temp[i].length; j++) {
           if (j == 0) {
             if (i == 0) {
               startTime = initTimeOfRoute(startTime, temp[0][0].routeId);
+              let timeToStartRoute = startTime;
               let routeDetail = getRouteDetail(temp[0][0]);
               startTime = findTimeToStation(startTime, routeDetail);
+              let timeSchedule = findTimeToSchedule(temp[0][0].routeId,timeToStartRoute,startTime);
+              if(timeSchedule){
+                if(!CheckSameDay(timeSchedule)){
+                  startTime = timeSchedule;
+                }
+                else{
+                  validCheck =false;
+                  break;
+                }
+              }
+              else{
+                validCheck =false;
+                break;
+              }
             } else {
               if (temp[i - 1].length == 1) {
                 startTime = findTimeToNextRouteDetail(
@@ -688,10 +760,12 @@ router.get("/find-routes", async (req, resp) => {
         }
       }
 
-      validRoute.push({
-        routeItem: routeItem,
-        startTimes: startTimes,
-      });
+      if(validCheck){
+        validRoute.push({
+          routeItem: routeItem,
+          startTimes: startTimes,
+        });
+      }
     }
 
     let sendDateFinalRoute = (routeItem, startTimes) => {
