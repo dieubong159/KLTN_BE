@@ -132,6 +132,7 @@ let setDepartureComplete = async (allRouteDetails, allbookings) => {
         );
         for (let booking of bookings) {
           booking.status = statusBookingComplete;
+          booking.reviewed = false;
           await booking.save();
         }
       }
@@ -172,7 +173,7 @@ let setBookingTimeout = async (allbookings) => {
         "YYYY-MM-DD HH:mm:ss"
       );
       if (todayMoment.isAfter(bookingExpiredTime)) {
-        await Booking.deleteOne(booking._id);
+        await Booking.findByIdAndDelete(mongoose.Types.ObjectId(booking._id));
       }
     }
   }
@@ -378,7 +379,7 @@ router.get("/find-routes", async (req, resp) => {
 
     //let avg = Math.ceil(foundRoutes.map(e => e.length).reduce((a, b) => a + b, 0) / foundRoutes.length / 2)
     let min = Math.min(...foundRoutes.map(({ length }) => length));
-    foundRoutes = foundRoutes.filter(e => e.length == min);        
+    foundRoutes = foundRoutes.filter((e) => e.length == min);
 
     let allDetailRoutes = [];
     for (let foundRoute of foundRoutes) {
@@ -560,7 +561,7 @@ router.get("/find-routes", async (req, resp) => {
           e.orderRouteToStation > currentRouteDetail.orderRouteToStation
       );
 
-      for(let item of nextRouteDetail){
+      for (let item of nextRouteDetail) {
         initTime.add(item.timeArrivingToStation, "hours");
       }
       return initTime;
@@ -683,8 +684,12 @@ router.get("/find-routes", async (req, resp) => {
     // }
 
     //allDetailRoutes = allDetailRoutes.slice(0, 20);
-    let routeIds = [...new Set(allDetailRoutes.flatMap(e => e.map(i => i.routeId)))];
-    allRouteDetails = allRouteDetails.filter(e => routeIds.some(i => i == e.route.toString()));
+    let routeIds = [
+      ...new Set(allDetailRoutes.flatMap((e) => e.map((i) => i.routeId))),
+    ];
+    allRouteDetails = allRouteDetails.filter((e) =>
+      routeIds.some((i) => i == e.route.toString())
+    );
 
     let validRoute = [];
     for (let routeItem of allDetailRoutes) {
@@ -1091,8 +1096,8 @@ router.get("/find-routes", async (req, resp) => {
         diffTime = moment.duration(diffTime, "milliseconds").asDays();
 
         let totalPrice = mapRoutes.reduce((a, b) => a + b["price"], 0);
-     
-        if(diffTime <= 3){
+
+        if (diffTime <= 3) {
           dataFinal.push({
             totalTime: diffTime,
             totalPrice: totalPrice,
@@ -1112,18 +1117,18 @@ router.get("/find-routes", async (req, resp) => {
   let routeDetailGroups = groupBy(routeDetails, "route");
 
   //tesst
-  let initTimeOfRoute = (routeId,time) => {
+  let initTimeOfRoute = (routeId, time) => {
     let route = allRoute.find((e) => e._id.toString() == routeId);
     let routetime = route.startTime.split(":");
 
     let temp = moment(
       time.format("YYYY-MM-DD HH:mm:ss"),
       "YYYY-MM-DD HH:mm:ss"
-    )
+    );
 
     temp
-    .add(parseInt(routetime[0]), "hours")
-    .add(parseInt(routetime[1]), "minutes");
+      .add(parseInt(routetime[0]), "hours")
+      .add(parseInt(routetime[1]), "minutes");
 
     return temp;
   };
@@ -1139,7 +1144,7 @@ router.get("/find-routes", async (req, resp) => {
     let temp = moment(
       time.format("YYYY-MM-DD HH:mm:ss"),
       "YYYY-MM-DD HH:mm:ss"
-    )
+    );
 
     for (let detail of routeDetails) {
       temp.add(detail.timeArrivingToStation, "hours");
@@ -1173,36 +1178,36 @@ router.get("/find-routes", async (req, resp) => {
       let startTime = moment(
         `${year}-${month}-${date} 00:00:00`,
         "YYYY-MM-DD HH:mm:ss"
-      )
+      );
 
-      let inittime = initTimeOfRoute(prop,startTime);
-      let time = findTimeToStation(inittime,start);
+      let inittime = initTimeOfRoute(prop, startTime);
+      let time = findTimeToStation(inittime, start);
 
       let gettimeIniteTime = moment(
         inittime.format("YYYY-MM-DD 00:00:00"),
         "YYYY-MM-DD HH:mm:ss"
-      )
+      );
       let gettimeToTime = moment(
         time.format("YYYY-MM-DD 00:00:00"),
         "YYYY-MM-DD HH:mm:ss"
-      )
+      );
       let subDay = moment
-      .duration(gettimeToTime.valueOf() - gettimeIniteTime.valueOf(), "milliseconds")
-      .asDays()
+        .duration(
+          gettimeToTime.valueOf() - gettimeIniteTime.valueOf(),
+          "milliseconds"
+        )
+        .asDays();
 
-      startTime= startTime.subtract(subDay,"days");
+      startTime = startTime.subtract(subDay, "days");
 
-      let dateSelect = new Date(startTime.format("MM/DD/YYYY"))
+      let dateSelect = new Date(startTime.format("MM/DD/YYYY"));
       let scheduleRoute = await RouteSchedule.findOne({
-        $and: [
-          { route: prop.toString() },
-          { dayOfWeek: dateSelect.getDay() },
-        ],
+        $and: [{ route: prop.toString() }, { dayOfWeek: dateSelect.getDay() }],
       });
-      if(scheduleRoute){
+      if (scheduleRoute) {
         startTimeToRoute.push({
-          route : prop,
-          date : dateSelect
+          route: prop,
+          date: dateSelect,
         });
         schedules.push(scheduleRoute);
       }
@@ -1211,7 +1216,7 @@ router.get("/find-routes", async (req, resp) => {
 
   routes = schedules.map((e) => e.route.toString());
   routes = await Route.find({ _id: { $in: routes } }).populate("vehicle");
-  
+
   routeDetails = routes.flatMap((e) =>
     allRouteDetails.filter((i) => i.route.toString() == e._id.toString())
   );
@@ -1295,7 +1300,7 @@ router.get("/find-routes", async (req, resp) => {
     );
 
     // get date to Route
-    let dateSelectToRoute = startTimeToRoute.find(e=>e.route== prop).date;
+    let dateSelectToRoute = startTimeToRoute.find((e) => e.route == prop).date;
 
     let selectedDate = new Date(dateSelectToRoute);
     let date = selectedDate.getDate();
