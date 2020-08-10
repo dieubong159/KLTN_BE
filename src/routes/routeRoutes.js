@@ -986,20 +986,20 @@ router.get("/find-routes", async (req, resp) => {
 
     let mapRouteToDataFinal = async (routeDetail, isFirstRoute = false) => {
       // Check first route
-      let query = {
-        $and: [{ route: routeDetail.routeId }],
-      };
+      // let query = {
+      //   $and: [{ route: routeDetail.routeId }],
+      // };
 
-      if (isFirstRoute) {
-        query["$and"].push({
-          dayOfWeek: new Date(routeData.departureDate).getDay(),
-        });
-      }
+      // if (isFirstRoute) {
+      //   query["$and"].push({
+      //     dayOfWeek: new Date(routeData.departureDate).getDay(),
+      //   });
+      // }
 
-      var schedule = await RouteSchedule.findOne(query);
-      if (!schedule) {
-        return null;
-      }
+      // var schedule = await RouteSchedule.findOne(query);
+      // if (!schedule) {
+      //   return null;
+      // }
 
       // Get route with vehicle
       let route = await Route.findById(routeDetail.routeId).populate("vehicle");
@@ -1053,7 +1053,7 @@ router.get("/find-routes", async (req, resp) => {
         let temp = moment(
           `${yearToday}-${monthToday}-${dateToday} ${hourToday}:${minuteToday}:00`,
           "YYYY-MM-DD HH:mm:ss"
-        ).add(0.5, "hours");
+        ).add(2, "hours");
         if (!temp.isBefore(timeAndPrice.startHour, "hours")) {
           return null;
         }
