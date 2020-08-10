@@ -985,40 +985,13 @@ router.get("/find-routes", async (req, resp) => {
     };
 
     let mapRouteToDataFinal = async (routeDetail, isFirstRoute = false) => {
-      // Check first route
-      // let query = {
-      //   $and: [{ route: routeDetail.routeId }],
-      // };
-
-      // if (isFirstRoute) {
-      //   query["$and"].push({
-      //     dayOfWeek: new Date(routeData.departureDate).getDay(),
-      //   });
-      // }
-
-      // var schedule = await RouteSchedule.findOne(query);
-      // if (!schedule) {
-      //   return null;
-      // }
-
       // Get route with vehicle
       let route = await Route.findById(routeDetail.routeId).populate("vehicle");
 
       // Get route details
       let routeDetails = allRouteDetails.filter(
         (e) => e.route.toString() == route._id.toString()
-      );
-
-      // Get additional data
-      let today = new Date();
-      let dateToday = today.getDate(),
-        monthToday = today.getMonth() + 1,
-        yearToday = today.getFullYear();
-
-      let selectedDate = new Date(routeData.departureDate);
-      let date = selectedDate.getDate();
-      let month = selectedDate.getMonth() + 1;
-      let year = selectedDate.getFullYear();
+      );   
 
       let startAddress = getLocation(routeDetail.startStation.stationStopId);
       let endAddress = getLocation(routeDetail.endStation.stationStopId);
@@ -1046,18 +1019,6 @@ router.get("/find-routes", async (req, resp) => {
         routeDetail.endStation.stationStopId,
         routeDetail.startTime
       );
-
-      if (dateToday == date && monthToday == month && yearToday == year) {
-        let hourToday = today.getHours();
-        let minuteToday = today.getMinutes();
-        let temp = moment(
-          `${yearToday}-${monthToday}-${dateToday} ${hourToday}:${minuteToday}:00`,
-          "YYYY-MM-DD HH:mm:ss"
-        ).add(2, "hours");
-        if (!temp.isBefore(timeAndPrice.startHour, "hours")) {
-          return null;
-        }
-      }
 
       return {
         _id: route._id.toString(),
