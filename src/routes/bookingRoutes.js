@@ -581,31 +581,31 @@ router.post("/booking/cancelTicketByCode", async (req, res) => {
   });
 });
 
-// router.post("/booking/cancelTicketById", async (req, res) => {
-//   var booking = await Booking.findById(req.body.ticketId);
-//   console.log(req.body.ticketId);
-//   if (!booking) {
-//     return res.status(404).json({
-//       error: "Not a valid bookingCode",
-//     });
-//   }
+router.post("/booking/cancelTicketById", async (req, res) => {
+  var booking = await Booking.findById(req.body.ticketId);
+  console.log(req.body.ticketId);
+  if (!booking) {
+    return res.status(404).json({
+      error: "Not a valid bookingCode",
+    });
+  }
 
-//   var statusBookingRemove = await Const.findOne({
-//     type: "trang_thai_dat_cho",
-//     value: "da_huy",
-//   });
-//   try {
-//     booking.status = statusBookingRemove;
-//     booking.cancelDate = new Date();
-//     booking.save();
-//     // console.log(booking);
-//     res.status(200).json({
-//       message: "Booking remove successfully!",
-//     });
-//   } catch (err) {
-//     res.status(500).send(err);
-//   }
-// });
+  var statusBookingRemove = await Const.findOne({
+    type: "trang_thai_dat_cho",
+    value: "da_huy",
+  });
+  try {
+    booking.status = statusBookingRemove;
+    booking.cancelDate = new Date();
+    booking.save();
+    // console.log(booking);
+    res.status(200).json({
+      message: "Booking remove successfully!",
+    });
+  } catch (err) {
+    res.status(500).send(err);
+  }
+});
 
 router.post("/booking/cancelBooking", async (req, res) => {
   try {
