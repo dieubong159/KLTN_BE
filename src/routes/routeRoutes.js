@@ -302,6 +302,17 @@ router.get("/find-routes", async (req, resp) => {
       );
     };
 
+    let startIndex = flatStations.findIndex(
+      (e) =>
+        e.station.stationStop.toString() == routeData.startLocation ||
+        e.station.province.toString() == routeData.startLocation
+    );
+    let endIndex = flatStations.findIndex(
+      (e) =>
+        e.station.stationStop.toString() == routeData.endLocation ||
+        e.station.province.toString() == routeData.endLocation
+    );
+
     let graphStations = new Array(flatStations.length);
     for (let i = 0; i < graphStations.length; i++) {
       graphStations[i] = new Array(flatStations.length).fill({
@@ -321,11 +332,19 @@ router.get("/find-routes", async (req, resp) => {
             graphStations[x][y].subRoutes.push(routeStations.slice(i, j));
             graphStations[x][y].byRoutes.push(prop);
           } else {
-            graphStations[x][y] = {
-              isAdjacent: true,
-              subRoutes: routeStations.slice(i, j),
-              byRoutes: [prop],
-            };
+            if (startIndex > endIndex && x > y) {
+              graphStations[x][y] = {
+                isAdjacent: true,
+                subRoutes: routeStations.slice(i, j),
+                byRoutes: [prop],
+              };
+            } else if (startIndex < endIndex && x < y) {
+              graphStations[x][y] = {
+                isAdjacent: true,
+                subRoutes: routeStations.slice(i, j),
+                byRoutes: [prop],
+              };
+            }
           }
         }
       }
@@ -340,20 +359,13 @@ router.get("/find-routes", async (req, resp) => {
         let subRouteDetailPaths = paths.slice(0, pathIndex);
 
         //check cung chuyen
-        let routeIds = [
-          ...new Set(
-            subRouteDetailPaths
-              .map((e) => flatStations[e])
-              .map((e) => e.route.toString())
-          ),
-        ];
-        let runOrders = allRoute
-          .filter((e) => routeIds.some((i) => i == e._id.toString()))
-          .map((e) => e.isCorrectRoute);
+        // let routeIds = [...new Set(subRouteDetailPaths.map(e => flatStations[e]).map(e => e.route.toString()))];
+        // let runOrders = allRoute.filter(e => routeIds.some(i => i == e._id.toString())).map(e => e.isCorrectRoute);
 
-        if (runOrders.every((e) => e) || runOrders.every((e) => !e)) {
-          foundRoutes.push(subRouteDetailPaths);
-        }
+        // if (runOrders.every(e => e) || runOrders.every(e => !e)) {
+        //   foundRoutes.push(subRouteDetailPaths);
+        // }
+        foundRoutes.push(subRouteDetailPaths);
       } else {
         for (let i = 0; i < flatStations.length; i++) {
           if (graphStations[u][i].isAdjacent && !visited[i]) {
@@ -370,19 +382,12 @@ router.get("/find-routes", async (req, resp) => {
     let paths = new Array(flatStations.length).fill(0);
     let pathIndex = 0;
 
-    let startIndex = flatStations.findIndex(
-      (e) =>
-        e.station.stationStop.toString() == routeData.startLocation ||
-        e.station.province.toString() == routeData.startLocation
-    );
-    let endIndex = flatStations.findIndex(
-      (e) =>
-        e.station.stationStop.toString() == routeData.endLocation ||
-        e.station.province.toString() == routeData.endLocation
-    );
-
     let foundRoutes = [];
     findRoutes(startIndex, endIndex, visited, paths, pathIndex);
+
+    //let avg = Math.ceil(foundRoutes.map(e => e.length).reduce((a, b) => a + b, 0) / foundRoutes.length / 2)
+    let min = Math.min(...foundRoutes.map(({ length }) => length));
+    foundRoutes = foundRoutes.filter((e) => e.length == min);
 
     let allDetailRoutes = [];
     for (let foundRoute of foundRoutes) {
@@ -541,13 +546,21 @@ router.get("/find-routes", async (req, resp) => {
 
     let findTimeToNextRouteDetail = (initTime, routeData) => {
       let currentRouteDetail = getRouteDetail(routeData);
-      let nextRouteDetail = allRouteDetails.find(
+      // let nextRouteDetail = allRouteDetails.find(
+      //   (e) =>
+      //     e.route.toString() == routeData.routeId &&
+      //     e.orderRouteToStation == currentRouteDetail.orderRouteToStation + 1
+      // );
+      let nextRouteDetail = allRouteDetails.filter(
         (e) =>
           e.route.toString() == routeData.routeId &&
-          e.orderRouteToStation == currentRouteDetail.orderRouteToStation + 1
+          e.orderRouteToStation > currentRouteDetail.orderRouteToStation
       );
 
-      initTime.add(nextRouteDetail.timeArrivingToStation, "hours");
+      for (let item of nextRouteDetail) {
+        initTime.add(item.timeArrivingToStation, "hours");
+      }
+      //initTime.add(nextRouteDetail.timeArrivingToStation, "hours");
       return initTime;
     };
 
@@ -617,6 +630,14 @@ router.get("/find-routes", async (req, resp) => {
 
     //   return runOrders.every(e => e) || runOrders.every(e => !e);
     // }
+
+    //allDetailRoutes = allDetailRoutes.slice(0, 20);
+    let routeIds = [
+      ...new Set(allDetailRoutes.flatMap((e) => e.map((i) => i.routeId))),
+    ];
+    allRouteDetails = allRouteDetails.filter((e) =>
+      routeIds.some((i) => i == e.route.toString())
+    );
 
     let validRoute = [];
     for (let routeItem of allDetailRoutes) {
@@ -1002,11 +1023,13 @@ router.get("/find-routes", async (req, resp) => {
 
         let totalPrice = mapRoutes.reduce((a, b) => a + b["price"], 0);
 
-        dataFinal.push({
-          totalTime: diffTime,
-          totalPrice: totalPrice,
-          routes: mapRoutes,
-        });
+        if (diffTime <= 3) {
+          dataFinal.push({
+            totalTime: diffTime,
+            totalPrice: totalPrice,
+            routes: mapRoutes,
+          });
+        }
       }
     }
 
@@ -1289,7 +1312,6 @@ router.get("/find-routes", async (req, resp) => {
       });
     }
   }
-  console.log(dataFinal);
   return resp.send(dataFinal);
 });
 
