@@ -23,7 +23,7 @@ var accessKey = "6pnCTPbCaPV5wew2";
 var serectkey = "ZmdAGeuX53DbdXPGrrISDEzRngk2QRwg";
 var orderInfo = "Thanh toán bằng Momo";
 // var returnUrl = "";
-var notifyurl = " https://kltn-booking.herokuapp.com/booking/momo_ipn";
+var notifyurl = "https://e51d7c2ab7b0.ngrok.io/booking/momo_ipn";
 var requestType = "captureMoMoWallet";
 var storeId = "gVOSOzYsIuCrf8cejBG4";
 var extraData = "";
@@ -97,7 +97,7 @@ const confirmPayment = async (bookingCode) => {
     }
     const from = "TieuDan Booking";
     let to;
-    if (userInformation.phoneNumber[0] === "+") {
+    if (bookings[0].bookingInformation.phonenumber[0] === "+") {
       to = "0" + bookings[0].bookingInformation.phonenumber.slice(3);
     } else {
       to = bookings[0].bookingInformation.phonenumber;
