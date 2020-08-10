@@ -6,6 +6,7 @@ const { start } = require("repl");
 const moment = require("moment");
 const nodemailer = require("nodemailer");
 const Nexmo = require("nexmo");
+const _ = require("lodash");
 
 const Booking = mongoose.model("Booking");
 const Route = mongoose.model("Route");
@@ -95,7 +96,12 @@ const confirmPayment = async (bookingCode) => {
       payment.save();
     }
     const from = "TieuDan Booking";
-    const to = bookings[0].bookingInformation.phonenumber;
+    let to;
+    if (userInformation.phoneNumber[0] === "+") {
+      to = "0" + bookings[0].bookingInformation.phonenumber.slice(3);
+    } else {
+      to = bookings[0].bookingInformation.phonenumber;
+    }
     const text =
       "Bạn đã thanh toán thành công! Mã đặt chỗ của bạn là " +
       bookingCode +
@@ -103,102 +109,86 @@ const confirmPayment = async (bookingCode) => {
 
     nexmo.message.sendSms(from, to, text);
 
-    // const from = "TieuDan Booking";
-    // const to = userInformation.phoneNumber;
-    // let text = "";
-    // if (paymentType !== "momo") {
-    //   text =
-    //     "Mã đặt chỗ của bạn là " +
-    //     payload.bookingInformation.bookingCode +
-    //     ". Xin vui lòng thanh toán trước 11:30 ngày " +
-    //     moment().add(1, "days").format("DD/MM/YYYY");
-    // }
+    var BookingItemHtml = "";
+    let group = _.groupBy(bookings, "routeDeparture._id");
+    const groupData = Object.values(group);
 
-    // nexmo.message.sendSms(from, to, text);
-
-    // var HtmlItemsForm = "";
-    // var HtmlTotalPriceForm = 0;
-
-    // for (let route of routeDetail) {
-    //   HtmlItemsForm +=
-    //     '<tr class="item"> <td> ' +
-    //     route.startLocation +
-    //     " -> " +
-    //     route.endLocation +
-    //     "</td> <td> " +
-    //     route.price +
-    //     "VND </td> </tr>";
-    //   HtmlTotalPriceForm += element._id.price * element.quantity;
-    // }
+    for (let booking of groupData) {
+      const provinceName = (location) => {
+        var n = location.split(",");
+        return n[n.length - 2];
+      };
+      let seats = [];
+      for (let item of booking) {
+        seats.push(item.seatNumber);
+      }
+      BookingItemHtml +=
+        '<table style="border-collapse: collapse; background-color: #fff;width: 100%;">                    <tr>                        <td style="text-align: center; vertical-align: top;border: 1px solid #a7a6a6; padding: 12px;" align="center">                            <p style="margin: 0; color: #5c5c5c;" >GHẾ</p>                            <p style="margin: 0;">' +
+        seats.toString() +
+        '</p>                            <p style="margin: 0; color: #5c5c5c;" ><small>(Xem mặt vé từ hãng)</small></p>                        </td>                        <td style="text-align: center; vertical-align: top;border: 1px solid #a7a6a6; padding: 12px; font-size: 28px; vertical-align: middle;text-align: center;" colspan="2">                            <span style="color: #5c5c5c;" >Từ</span>                            <span style="font-weight: bold;">' +
+        provinceName(booking[0].startLocation) +
+        '</span>                             <span style="color: #5c5c5c;" >đến</span>                             <span style="font-weight: bold;" >' +
+        provinceName(booking[0].endLocation) +
+        '</span>                        </td>                      </tr>                    <tr>                        <td style="text-align: center; vertical-align: top;border: 1px solid #a7a6a6; padding: 12px; text-align: center;">                            <p style="margin: 0; color: #5c5c5c;" >' +
+        booking[0].routeDeparture.route.vehicle.agent.name +
+        '</p>                        </td>                        <td style="text-align: center; vertical-align: top;border: 1px solid #a7a6a6; padding: 12px;">                            <p style="margin: 0; color: #5c5c5c;" >' +
+        booking[0].startLocation.split(",", 1) +
+        '</p>                            <div>                                <div style="float:left; width: 50%;" >                                    <span style="font-size: 28px;" >' +
+        booking[0].startDate.substr(11, 5) +
+        '</span>                                </div>                                <div style="float:right; width: 50%;" >                                    <p style="margin: 0;">' +
+        booking[0].startDate.substr(3, 2) +
+        '</p>                                    <p style="margin: 0;"><small>Tháng ' +
+        booking[0].startDate.substr(0, 2) +
+        ", " +
+        booking[0].startDate.substr(6, 4) +
+        '</small></p>                                </div>                            </div>                        </td>                        <td style="text-align: center; vertical-align: top;border: 1px solid #a7a6a6; padding: 12px;">                            <p style="margin: 0; color: #5c5c5c;" >' +
+        booking[0].endLocation.split(",", 1) +
+        '</p>                            <div>                                <div style="float:left; width: 50%;" >                                    <span style="font-size: 28px;">' +
+        booking[0].endDate.substr(11, 5) +
+        '</span>                                </div>                                <div style="float:right; width: 50%;" >                                    <p style="margin: 0;">' +
+        booking[0].startDate.substr(3, 2) +
+        '</p>                                    <p style="margin: 0;"><small>' +
+        booking[0].endDate.substr(0, 2) +
+        ", " +
+        booking[0].endDate.substr(6, 4) +
+        "</small></p>                                </div>                            </div>                        </td>                    </tr>                </table>";
+    }
 
     const mailOptions = {
-      from: "ngocdieupham711@gmail.com", // sender address
-      // to: order.user.email, // list of receivers
+      from: "16110291@student.hcmute.edu.vn", // sender address
       to: userInformation.email,
-      subject: "Xác nhận đơn hàng", // Subject line
+      subject: "Thông báo thanh toán thành công", // Subject line
       html:
-        '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Email template</title></head><body><style>table{border-collapse: collapse; background-color: #fff;width: 100%;}p{margin: 0;}td{vertical-align: top;border: 1px solid #a7a6a6; padding: 12px;}.text-red{color:red;}.text-dark{color: #5c5c5c;}.text-green{color: green;}.text-yellow{color: orange;}.text-bold{font-weight: bold;}.text-24{font-size: 24px;}.text-28{font-size: 28px;}.text-20{font-size: 20px;}.m-tb-8{display: block;margin: 8px 0;}.m-b-4{display: block;margin-bottom: 4px;}.m-b-32{display: block;margin-bottom: 32px;}.b-div .b-left{float:left; width: 50%;}.b-div .b-right{float:right; width: 50%;}.text-italic{font-style: italic;}.bounding{border: 1px solid #a7a6a6;border-radius: 16px;padding:4px 8px;margin-bottom: 4px;display: inline-block;}</style><div style="font-family: Arial, Helvetica, sans-serif;background-color: #f1f1f1;padding: 16px;"><table class="m-b-32"><tr class="text-28"><td colspan="2"><span class="text-dark">THÔNG TIN QUAN TRỌNG</span></td><td class="text-dark" align="right"><span>MÃ HỒ SƠ: <span class="text-red">' +
+        '<!DOCTYPE html>        <html lang="en">       <head>            <meta charset="UTF-8">            <meta name="viewport" content="width=device-width, initial-scale=1.0">            <title>Email template</title>        </head>        <body>            <div style="font-family: Arial, Helvetica, sans-serif;background-color: #f1f1f1;padding: 16px;">                <table style="border-collapse: collapse; background-color: #fff;width: 100%; display: block;margin-bottom: 32px;">                    <tr style="font-size: 28px;">                        <td style="vertical-align: top;border: 1px solid #a7a6a6; padding: 12px;" colspan="2">                            <span style="color: #5c5c5c;" >THÔNG TIN QUAN TRỌNG</span>                        </td>                        <td style="vertical-align: top;border: 1px solid #a7a6a6; padding: 12px; color: #5c5c5c;" align="right">                            <span>MÃ THANH TOÁN: <span style="color:red;">' +
         payload.bookingCode +
-        '</span></span></td></tr><tr><td style="text-align: center;"><p class="text-dark">THỜI HẠN THANH TOÁN</p><p class="text-bold text-yellow text-20 m-tb-8">' +
-        "ĐÃ QUÁ HẠN" +
-        '</p><small class="text-bold text-red m-b-4">' +
-        moment().add(1, "days").format("DD/MM/YYYY") +
-        '</small><p><small class="text-dark"><i>' +
-        "Quý khách cần đảm bảo thanh toán trước thời hạn trên (hiển thị theo khung 24h)." +
-        '</i></small></p></td><td><p class="text-dark">' +
-        "MÃ ĐẶT CHỖ DÙNG ĐỂ TRA CỨU VÀ THANH TOÁN" +
-        '</p><p class="text-bold text-red text-20 m-tb-8">' +
+        '</span></span>                        </td>                    </tr>                    <tr>                        <td style="text-align: center; vertical-align: top;border: 1px solid #a7a6a6; padding: 12px;">                            <p style="margin: 0; color: #5c5c5c;" >THỜI HẠN THANH TOÁN</p>                            <p style="margin: 0; font-weight: bold; color: orange; font-size: 20px; display: block;margin: 8px 0;">Đã thanh toán</p>                            <small style="font-weight: bold; color:red; display: block;margin-bottom: 4px;" ></small>                            <p style="margin: 0;"><small style="color: #5c5c5c;"><i>Quý khách cần đảm bảo thanh toán trước thời hạn trên (hiển thị theo khung 24h).</i></small></p>                        </td>                        <td style="vertical-align: top;border: 1px solid #a7a6a6; padding: 12px;">                            <p style="margin: 0; color: #5c5c5c;" class="text-dark">MÃ ĐẶT CHỖ DÙNG ĐỂ TRA CỨU VÀ THANH TOÁN</p>                            <p style="margin: 0; font-weight: bold; color:red; font-size: 20px; display: block;margin: 8px 0;">+ ' +
         payload.bookingCode +
-        '</p><p><small class="text-dark"><i>' +
-        "Thực hiện trước 60 phút (Nếu thanh toán tại cửa hàng tiện lợi." +
-        '</a></i></small></p></td><td><p class="text-dark">SỐ TIỀN CHUYẾN KHOẢN</p><pclass="text-bold text-red text-20 m-tb-8">' +
-        payload.price +
-        '</p><p><small class="text-dark"><i>Chuyển chính xác số tiền phải trả trong mọi trường hợp</i></small></p></td></tr></able><table><tr><td align="center"><p class="text-dark">MÃ ĐẶT CHỖ</p><p>' +
-        payload.bookingCode +
-        '</p><p class="text-dark"><small>(Xem mặt vé từ hãng)</small></p></td><td colspan="2" class="text-28" style="vertical-align: middle;text-align: center;"><span class="text-dark">From</span> <span class="text-bold">' +
-        payload.routeDetail[0].startLocation +
-        '</span> <span class="text-dark">to</span>    <span class="text-bold">' +
-        payload.routeDetail[0].endLocation +
-        '</span></td></tr><tr> <td style="text-align: center;"><p class="text-dark">' +
-        payload.routeDetail[0].agent +
-        '</p></td><td>        <p class="text-dark">' +
-        payload.routeDetail[0].agent.agentDetail.address +
-        '</p><div class="b-div"><div class="b-left"><span class="text-28">' +
-        payload.startTime +
-        '</span></div><div class="b-right">        <p>' +
-        payload.startTime.getDay +
-        "</p><p><small>" +
-        payload.startTime.getMonthYear +
-        '</small></p></div></div></td><td><p class="text-dark">' +
-        payload.routeDetail[length - 1].agent.agentDetail.address +
-        '</p><div class="b-div"> <div class="b-left"> <span class="text-28">' +
-        payload.endTime +
-        '</span></div><div class="b-right"><p>' +
-        payload.endTime.getDay +
-        "</p><p><small>" +
-        payload.endTime.getMonthYear +
-        '</small></p> </div></div></td></tr></table><table style="margin-top: 32px;"><tr><td><span class="text-dark text-28">HÀNH KHÁCH</span></td></tr><td align="center"><span class="bounding text-italic text-dark">' +
+        '</p>                            <p style="margin: 0;"><small style="color: #5c5c5c;" class="text-dark"><i>Thực hiện trước thời hạn 60 phút (Nếu thanh toán tại cửa hàng tiện lợi).</i></small></p>                        </td>                        <td style="vertical-align: top;border: 1px solid #a7a6a6; padding: 12px;">                            <p  style="margin: 0; color: #5c5c5c;" >SỐ TIỀN THANH TOÁN</p>                            <p style="margin: 0; font-weight: bold; color:red; font-size: 20px; display: block;margin: 8px 0;">' +
+        amount +
+        '</p>                            <p style="margin: 0;"><small  style="color: #5c5c5c;" ><i>Thanh toán xác số tiền phải trả trong mọi trường hợp.</i></small></p>                        </td>                    </tr>                </table>     ' +
+        BookingItemHtml +
+        '           <table style="border-collapse: collapse; background-color: #fff;width: 100%; margin-top: 32px;">                    <tr>                        <td style="text-align: center; vertical-align: top;border: 1px solid #a7a6a6; padding: 12px;">                            <span style="color: #5c5c5c; font-size: 28px;">HÀNH KHÁCH</span>                        </td>                    </tr>                    <td style="text-align: center; vertical-align: top;border: 1px solid #a7a6a6; padding: 12px;" align="center">                        <span style="border: 1px solid #a7a6a6;border-radius: 16px;padding:4px 8px;margin-bottom: 4px;display: inline-block; font-style: italic; color: #5c5c5c;" >' +
         userInformation.name +
-        '</span><p class="text-dark"><small>' +
-        userInformation.phonenumber +
-        '</small></p><p class="text-dark"><small>' +
+        '</span>                        <p style="margin: 0; color: #5c5c5c;" ><small>' +
+        userInformation.phoneNumber +
+        '</small></p>                        <p style="margin: 0; color: #5c5c5c;" ><small>' +
         userInformation.email +
-        '</small></p> <p class="text-dark"><small>' +
+        '</small></p> <p style="margin: 0; color: #5c5c5c;" ><small>' +
         userInformation.identityId +
-        "</small></p></td></table></div></body></html>",
+        "</small></p>                    </td>                </table>            </div>        </body>        </html>",
     };
 
-    // transporter.sendMail(mailOptions, function (err, info) {
-    //   if (err) {
-    //     console.log(err);
-    //     req.flash("mess", "Lỗi gửi mail: " + err); //Gửi thông báo đến người dùng
-    //     res.redirect("/");
-    //   } else {
-    //     console.log("Message sent: " + info.response);
-    //     req.flash("mess", "Một email đã được gửi đến tài khoản của bạn"); //Gửi thông báo đến người dùng
-    //     res.redirect("/");
-    //   }
-    // });
+    transporter.sendMail(mailOptions, function (err, info) {
+      if (err) {
+        console.log(err);
+        // res.flash("mess", "Lỗi gửi mail: " + err); //Gửi thông báo đến người dùng
+      } else {
+        console.log("Message sent: " + info.response);
+        // req.flash("mess", "Một email đã được gửi đến tài khoản của bạn"); //Gửi thông báo đến người dùng
+        // res.redirect("/");
+      }
+    });
+
     return 200;
   } catch (error) {
     console.log(error);
@@ -681,7 +671,7 @@ router.post("/booking/update", async (req, res) => {
       if (payload.coupon.userId) {
         await Booking.updateMany(
           { bookingCode: payload.bookingCode },
-          { coupon: payload.coupon._id },
+          { coupon: mongoose.Types.ObjectId(payload.coupon._id) },
           function (err) {
             if (err) res.send({ error: err });
           }
@@ -705,7 +695,7 @@ router.post("/booking/update", async (req, res) => {
             {
               _id: { $in: bookingIds },
             },
-            { coupon: payload.coupon._id },
+            { coupon: mongoose.Types.ObjectId(payload.coupon._id) },
             function (err) {
               if (err) res.send(err);
             }
@@ -718,32 +708,38 @@ router.post("/booking/update", async (req, res) => {
       }
     }
 
-    // const from = "TieuDan Booking";
-    // const to = userInformation.phoneNumber;
-    // let text = "";
-    // if (paymentType !== "momo") {
-    //   text =
-    //     "Mã đặt chỗ của bạn là " +
-    //     payload.bookingCode +
-    //     ". Xin vui lòng thanh toán trước 11:30 ngày " +
-    //     moment().add(1, "days").format("DD/MM/YYYY");
-    // } else {
-    //   text = "Mã đặt chỗ của bạn là " + payload.bookingCode;
-    // }
-
-    // nexmo.message.sendSms(from, to, text);
+    const from = "TieuDan Booking";
+    let to;
+    if (userInformation.phoneNumber[0] === "+") {
+      to = "0" + userInformation.phoneNumber.slice(3);
+    } else {
+      to = userInformation.phoneNumber;
+    }
+    console.log(to);
+    let text = "";
+    if (paymentType !== "momo") {
+      text =
+        "Mã đặt chỗ của bạn là " +
+        payload.bookingCode +
+        ". Xin vui lòng thanh toán trước 11:30 ngày " +
+        moment().add(1, "days").format("DD/MM/YYYY");
+    } else {
+      text = "Mã đặt chỗ của bạn là " + payload.bookingCode;
+    }
+    try {
+      nexmo.message.sendSms(from, to, text);
+    } catch (error) {
+      console.log(error);
+    }
 
     var BookingItemHtml = "";
     let group = _.groupBy(bookings, "routeDeparture._id");
     const groupData = Object.values(group);
-
+    const provinceName = (location) => {
+      var n = location.split(",");
+      return n[n.length - 2];
+    };
     for (let booking of groupData) {
-      const startTime = moment(booking[0].startTime, "MM/DD/YYYY hh:mm");
-      const endTime = moment(booking[0].endTime, "MM/DD/YYYY hh:mm");
-      const provinceName = (location) => {
-        var n = location.split(",");
-        return n[n.length - 2];
-      };
       let seats = [];
       for (let item of booking) {
         seats.push(item.seatNumber);
@@ -751,55 +747,37 @@ router.post("/booking/update", async (req, res) => {
       BookingItemHtml +=
         '<table style="border-collapse: collapse; background-color: #fff;width: 100%;">                    <tr>                        <td style="text-align: center; vertical-align: top;border: 1px solid #a7a6a6; padding: 12px;" align="center">                            <p style="margin: 0; color: #5c5c5c;" >GHẾ</p>                            <p style="margin: 0;">' +
         seats.toString() +
-        '</p>                            <p style="margin: 0; color: #5c5c5c;" ><small>(Xem mặt vé từ hãng)</small></p>                        </td>                        <td style="text-align: center; vertical-align: top;border: 1px solid #a7a6a6; padding: 12px; font-size: 28px; vertical-align: middle;text-align: center;" colspan="2">                            <span style="color: #5c5c5c;" >From</span>                            <span style="font-weight: bold;">' +
+        '</p>                            <p style="margin: 0; color: #5c5c5c;" ><small>(Xem mặt vé từ hãng)</small></p>                        </td>                        <td style="text-align: center; vertical-align: top;border: 1px solid #a7a6a6; padding: 12px; font-size: 28px; vertical-align: middle;text-align: center;" colspan="2">                            <span style="color: #5c5c5c;" >Từ</span>                            <span style="font-weight: bold;">' +
         provinceName(booking[0].startLocation) +
-        '</span>                             <span style="color: #5c5c5c;" >to</span>                             <span style="font-weight: bold;" >' +
+        '</span>                             <span style="color: #5c5c5c;" >đến</span>                             <span style="font-weight: bold;" >' +
         provinceName(booking[0].endLocation) +
         '</span>                        </td>                      </tr>                    <tr>                        <td style="text-align: center; vertical-align: top;border: 1px solid #a7a6a6; padding: 12px; text-align: center;">                            <p style="margin: 0; color: #5c5c5c;" >' +
         booking[0].routeDeparture.route.vehicle.agent.name +
         '</p>                        </td>                        <td style="text-align: center; vertical-align: top;border: 1px solid #a7a6a6; padding: 12px;">                            <p style="margin: 0; color: #5c5c5c;" >' +
         booking[0].startLocation.split(",", 1) +
         '</p>                            <div>                                <div style="float:left; width: 50%;" >                                    <span style="font-size: 28px;" >' +
-        booking[0].startTime.substr(11, 5) +
+        booking[0].startDate.substr(11, 5) +
         '</span>                                </div>                                <div style="float:right; width: 50%;" >                                    <p style="margin: 0;">' +
-        booking[0].startTime.substr(3, 2) +
-        '</p>                                    <p style="margin: 0;"><small>Tháng 7, 2020</small></p>                                </div>                            </div>                        </td>                        <td style="text-align: center; vertical-align: top;border: 1px solid #a7a6a6; padding: 12px;">                            <p style="margin: 0; color: #5c5c5c;" >' +
+        booking[0].startDate.substr(3, 2) +
+        '</p>                                    <p style="margin: 0;"><small>Tháng ' +
+        booking[0].startDate.substr(0, 2) +
+        ", " +
+        booking[0].startDate.substr(6, 4) +
+        '</small></p>                                </div>                            </div>                        </td>                        <td style="text-align: center; vertical-align: top;border: 1px solid #a7a6a6; padding: 12px;">                            <p style="margin: 0; color: #5c5c5c;" >' +
         booking[0].endLocation.split(",", 1) +
-        '</p>                            <div>                                <div style="float:left; width: 50%;" >                                    <span style="font-size: 28px;">08:25</span>                                </div>                                <div style="float:right; width: 50%;" >                                    <p style="margin: 0;">15</p>                                    <p style="margin: 0;"><small>Tháng 7, 2020</small></p>                                </div>                            </div>                        </td>                    </tr>                </table>';
-      // '<table><tr><td align="center"><p class="text-dark">MÃ ĐẶT CHỖ</p><p>' +
-      // payload.bookingCode +
-      // '</p><p class="text-dark"><small>(Xem mặt vé từ hãng)</small></p></td><td colspan="2" class="text-28" style="vertical-align: middle;text-align: center;"><span class="text-dark">From</span> <span class="text-bold">' +
-      // booking.startLocation +
-      // '</span> <span class="text-dark">to</span>    <span class="text-bold">' +
-      // booking.endLocation +
-      // '</span></td></tr><tr> <td style="text-align: center;"><p class="text-dark">' +
-      // booking.routeDeparture.route.vehicle.agent.name +
-      // '</p></td><td><p class="text-dark">' +
-      // booking.startLocation.split(",", 1) +
-      // '</p><div class="b-div"><div class="b-left"><span class="text-28">' +
-      // startTime.format("hh:mm") +
-      // '</span></div><div class="b-right">        <p>' +
-      // startTime.date() +
-      // "</p><p><small>Tháng" +
-      // startTime.month() +
-      // "," +
-      // startTime.year() +
-      // '</small></p></div></div></td><td><p class="text-dark">' +
-      // booking.endLocation.split(",", 1) +
-      // '</p><div class="b-div"> <div class="b-left"> <span class="text-28">' +
-      // endTime.format("hh:mm") +
-      // '</span></div><div class="b-right"><p>' +
-      // endTime.date() +
-      // "</p><p><small>Tháng" +
-      // startTime.month() +
-      // "," +
-      // startTime.year() +
-      // "</small></p> </div></div></td></tr></table>";
+        '</p>                            <div>                                <div style="float:left; width: 50%;" >                                    <span style="font-size: 28px;">' +
+        booking[0].endDate.substr(11, 5) +
+        '</span>                                </div>                                <div style="float:right; width: 50%;" >                                    <p style="margin: 0;">' +
+        booking[0].endDate.substr(3, 2) +
+        '</p>                                    <p style="margin: 0;"><small>' +
+        booking[0].endDate.substr(0, 2) +
+        ", " +
+        booking[0].endDate.substr(6, 4) +
+        "</small></p>                                </div>                            </div>                        </td>                    </tr>                </table>";
     }
 
     const mailOptions = {
-      from: "ngocdieupham711@gmail.com", // sender address
-      // to: order.user.email, // list of receivers
+      from: "16110291@student.hcmute.edu.vn", // sender address
       to: userInformation.email,
       subject: "Thông báo đặt vé thành công", // Subject line
       html:
@@ -807,38 +785,21 @@ router.post("/booking/update", async (req, res) => {
         payload.bookingCode +
         '</span></span>                        </td>                    </tr>                    <tr>                        <td style="text-align: center; vertical-align: top;border: 1px solid #a7a6a6; padding: 12px;">                            <p style="margin: 0; color: #5c5c5c;" >THỜI HẠN THANH TOÁN</p>                            <p style="margin: 0; font-weight: bold; color: orange; font-size: 20px; display: block;margin: 8px 0;">Chưa thanh toán</p>                            <small style="font-weight: bold; color:red; display: block;margin-bottom: 4px;" >' +
         moment(expiredBooking).format("hh:mm DD/MM/YYYY") +
-        '</small>                            <p style="margin: 0;"><small style="color: #5c5c5c;"><i>Quý khách cần đảm bảo thanh toán trước thời hạn trên (hiển thị theo khung 24h).</i></small></p>                        </td>                        <td style="vertical-align: top;border: 1px solid #a7a6a6; padding: 12px;">                            <p style="margin: 0; color: #5c5c5c;" class="text-dark">MÃ ĐẶT CHỖ DÙNG ĐỂ TRA CỨU VÀ THANH TOÁN</p>                            <p style="margin: 0; font-weight: bold; color:red; font-size: 20px; display: block;margin: 8px 0;">+ ' +
+        '</small>                            <p style="margin: 0;"><small style="color: #5c5c5c;"><i>Quý khách cần đảm bảo thanh toán trước thời hạn trên (hiển thị theo khung 24h).</i></small></p>                        </td>                        <td style="vertical-align: top;border: 1px solid #a7a6a6; padding: 12px;">                            <p style="margin: 0; color: #5c5c5c;" class="text-dark">MÃ ĐẶT CHỖ DÙNG ĐỂ TRA CỨU VÀ THANH TOÁN</p>                            <p style="margin: 0; font-weight: bold; color:red; font-size: 20px; display: block;margin: 8px 0;"> ' +
         payload.bookingCode +
         '</p>                            <p style="margin: 0;"><small style="color: #5c5c5c;" class="text-dark"><i>Thực hiện trước thời hạn 60 phút (Nếu thanh toán tại cửa hàng tiện lợi).</i></small></p>                        </td>                        <td style="vertical-align: top;border: 1px solid #a7a6a6; padding: 12px;">                            <p  style="margin: 0; color: #5c5c5c;" >SỐ TIỀN THANH TOÁN</p>                            <p style="margin: 0; font-weight: bold; color:red; font-size: 20px; display: block;margin: 8px 0;">' +
         amount +
-        '</p>                            <p style="margin: 0;"><small  style="color: #5c5c5c;" ><i>Thanh toán xác số tiền phải trả trong mọi trường hợp.</i></small></p>                        </td>                    </tr>                </table>                <table style="border-collapse: collapse; background-color: #fff;width: 100%;">                    <tr>                        <td style="text-align: center; vertical-align: top;border: 1px solid #a7a6a6; padding: 12px;" align="center">                            <p style="margin: 0; color: #5c5c5c;" >MÃ ĐẶT CHỖ</p>                            <p style="margin: 0;">B8BHYDH</p>                            <p style="margin: 0; color: #5c5c5c;" ><small>(Xem mặt vé từ hãng)</small></p>                        </td>                        <td style="text-align: center; vertical-align: top;border: 1px solid #a7a6a6; padding: 12px; font-size: 28px; vertical-align: middle;text-align: center;" colspan="2">                            <span style="color: #5c5c5c;" >From</span>                            <span style="font-weight: bold;">Quảng Nam - Chu Lai</span>                             <span style="color: #5c5c5c;" >to</span>                             <span style="font-weight: bold;" >Quảng Nam - Chu Lai</span>                        </td>                    </tr>                    <tr>                        <td style="text-align: center; vertical-align: top;border: 1px solid #a7a6a6; padding: 12px; text-align: center;">                            <p style="margin: 0; color: #5c5c5c;" >Nhà xe</p>                        </td>                        <td style="text-align: center; vertical-align: top;border: 1px solid #a7a6a6; padding: 12px;">                            <p style="margin: 0; color: #5c5c5c;" >Quảng Nam - Chu Lai</p>                            <div>                                <div style="float:left; width: 50%;" >                                    <span style="font-size: 28px;" >08:25</span>                                </div>                                <div style="float:right; width: 50%;" >                                    <p style="margin: 0;">15</p>                                    <p style="margin: 0;"><small>Tháng 7, 2020</small></p>                                </div>                            </div>                        </td>                        <td style="text-align: center; vertical-align: top;border: 1px solid #a7a6a6; padding: 12px;">                            <p style="margin: 0; color: #5c5c5c;" >Quảng Nam - Chu Lai</p>                            <div>                                <div style="float:left; width: 50%;" >                                    <span style="font-size: 28px;">08:25</span>                                </div>                                <div style="float:right; width: 50%;" >                                    <p style="margin: 0;">15</p>                                    <p style="margin: 0;"><small>Tháng 7, 2020</small></p>                                </div>                            </div>                        </td>                    </tr>                </table>                <table style="border-collapse: collapse; background-color: #fff;width: 100%; margin-top: 32px;">                    <tr>                        <td style="text-align: center; vertical-align: top;border: 1px solid #a7a6a6; padding: 12px;">                            <span style="color: #5c5c5c; font-size: 28px;">HÀNH KHÁCH</span>                        </td>                    </tr>                    <td style="text-align: center; vertical-align: top;border: 1px solid #a7a6a6; padding: 12px;" align="center">                        <span style="border: 1px solid #a7a6a6;border-radius: 16px;padding:4px 8px;margin-bottom: 4px;display: inline-block; font-style: italic; color: #5c5c5c;" >Pham Ngoc Dieu</span>                        <p style="margin: 0; color: #5c5c5c;" ><small>09039232983</small></p>                        <p style="margin: 0; color: #5c5c5c;" ><small>Lorem, ipsum dolor sit amet consectetur adipisicing elit. Provident non fugit consectetur modi deleniti.</small></p>                    </td>                </table>            </div>        </body>        </html>',
-      // '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Email template</title></head><body><style>table{border-collapse: collapse; background-color: #fff;width: 100%;}p{margin: 0;}td{vertical-align: top;border: 1px solid #a7a6a6; padding: 12px;}.text-red{color:red;}.text-dark{color: #5c5c5c;}.text-green{color: green;}.text-yellow{color: orange;}.text-bold{font-weight: bold;}.text-24{font-size: 24px;}.text-28{font-size: 28px;}.text-20{font-size: 20px;}.m-tb-8{display: block;margin: 8px 0;}.m-b-4{display: block;margin-bottom: 4px;}.m-b-32{display: block;margin-bottom: 32px;}.b-div .b-left{float:left; width: 50%;}.b-div .b-right{float:right; width: 50%;}.text-italic{font-style: italic;}.bounding{border: 1px solid #a7a6a6;border-radius: 16px;padding:4px 8px;margin-bottom: 4px;display: inline-block;}</style><div style="font-family: Arial, Helvetica, sans-serif;background-color: #f1f1f1;padding: 16px;"><table class="m-b-32"><tr class="text-28"><td colspan="2"><span class="text-dark">THÔNG TIN QUAN TRỌNG</span></td><td class="text-dark" align="right"><span>MÃ HỒ SƠ: <span class="text-red">' +
-      // payload.bookingCode +
-      // '</span></span></td></tr><tr><td style="text-align: center;"><p class="text-dark">THỜI HẠN THANH TOÁN</p><p class="text-bold text-yellow text-20 m-tb-8">' +
-      // "CHƯA THANH TOÁN" +
-      // '</p><small class="text-bold text-red m-b-4">' +
-      // moment(expiredBooking).format("hh:mm DD/MM/YYYY") +
-      // '</small><p><small class="text-dark"><i>' +
-      // "Quý khách cần đảm bảo thanh toán trước thời hạn trên (hiển thị theo khung 24h)." +
-      // '</i></small></p></td><td><p class="text-dark">' +
-      // "MÃ ĐẶT CHỖ DÙNG ĐỂ TRA CỨU VÀ THANH TOÁN" +
-      // '</p><p class="text-bold text-red text-20 m-tb-8">' +
-      // payload.bookingCode +
-      // '</p><p><small class="text-dark"><i>' +
-      // "Thực hiện trước thời hạn 60 phút (Nếu thanh toán tại cửa hàng tiện lợi)." +
-      // '</a></i></small></p></td><td><p class="text-dark">SỐ TIỀN CHUYẾN KHOẢN</p><pclass="text-bold text-red text-20 m-tb-8">' +
-      // amount +
-      // '</p><p><small class="text-dark"><i>Chuyển chính xác số tiền phải trả trong mọi trường hợp</i></small></p></td></tr></table>' +
-      // BookingItemHtml +
-      // '<table style="margin-top: 32px;"><tr><td><span class="text-dark text-28">HÀNH KHÁCH</span></td></tr><td align="center"><span class="bounding text-italic text-dark">' +
-      // userInformation.name +
-      // '</span><p class="text-dark"><small>' +
-      // userInformation.phoneNumber +
-      // '</small></p><p class="text-dark"><small>' +
-      // userInformation.email +
-      // '</small></p> <p class="text-dark"><small>' +
-      // userInformation.identityId +
-      // "</small></p></td></table></div></body></html>",
+        '</p>                            <p style="margin: 0;"><small  style="color: #5c5c5c;" ><i>Thanh toán xác số tiền phải trả trong mọi trường hợp.</i></small></p>                        </td>                    </tr>                </table>     ' +
+        BookingItemHtml +
+        '           <table style="border-collapse: collapse; background-color: #fff;width: 100%; margin-top: 32px;">                    <tr>                        <td style="text-align: center; vertical-align: top;border: 1px solid #a7a6a6; padding: 12px;">                            <span style="color: #5c5c5c; font-size: 28px;">HÀNH KHÁCH</span>                        </td>                    </tr>                    <td style="text-align: center; vertical-align: top;border: 1px solid #a7a6a6; padding: 12px;" align="center">                        <span style="border: 1px solid #a7a6a6;border-radius: 16px;padding:4px 8px;margin-bottom: 4px;display: inline-block; font-style: italic; color: #5c5c5c;" >' +
+        userInformation.name +
+        '</span>                        <p style="margin: 0; color: #5c5c5c;" ><small>' +
+        userInformation.phoneNumber +
+        '</small></p>                        <p style="margin: 0; color: #5c5c5c;" ><small>' +
+        userInformation.email +
+        '</small></p> <p style="margin: 0; color: #5c5c5c;" ><small>' +
+        userInformation.indentityId +
+        "</small></p>                    </td>                </table>            </div>        </body>        </html>",
     };
 
     transporter.sendMail(mailOptions, function (err, info) {
@@ -853,6 +814,7 @@ router.post("/booking/update", async (req, res) => {
     });
     res.status(200).send({ message: "Update successfully!" });
   } catch (error) {
+    console.log(error);
     res.send({ message: error.response });
   }
 });
