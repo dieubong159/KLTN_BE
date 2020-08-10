@@ -26,6 +26,7 @@ const userRoutes = require("./routes/userRoutes");
 const vehicleRoutes = require("./routes/vehicleRoutes");
 const otpRoutes = require("./routes/otpRoutes");
 const constRoutes = require("./routes/constRoutes");
+var port = process.env.PORT || 8080;
 
 const app = express();
 
@@ -86,6 +87,6 @@ mongoose.connection.on("error", (err) => {
 //   res.send(`Your email is ${req.user.email}`);
 // });
 
-// http.listen(3000, () => {
-//   console.log("Listening on port 3000");
-// });
+http.listen(process.env.PORT || 3000, () => {
+  console.log("Listening on port 3000");
+});
