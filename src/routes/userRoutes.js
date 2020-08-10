@@ -56,14 +56,17 @@ router.patch("/changePassword/:userId", async (req, res) => {
 });
 
 router.patch("/user/edit/:userId", async (req, res) => {
-  const payload = req.body;
+  const payload = req.body.payload;
   const userId = req.params.userId;
-
+  console.log(payload);
+  // console.log(userId);
   try {
     const user = await User.findById(userId);
+    // console.log(user);
     if (user) {
       for (let i in payload) {
         user[i] = payload[i];
+        console.log(i);
       }
       user.save().then(() => {
         res

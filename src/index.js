@@ -82,10 +82,10 @@ mongoose.connection.on("error", (err) => {
   console.error("Error connecting to mongo!", err);
 });
 
-app.get("/", requireAuth, (req, res) => {
-  res.send(`Your email is ${req.user.email}`);
-});
+// app.get("/", requireAuth, (req, res) => {
+//   res.send(`Your email is ${req.user.email}`);
+// });
 
-http.listen(3000, () => {
-  console.log("Listening on port 3000");
-});
+// http.listen(3000, () => {
+//   console.log("Listening on port 3000");
+// });

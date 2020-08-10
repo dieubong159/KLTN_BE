@@ -7,7 +7,7 @@ const router = express.Router();
 
 router.post("/signup", async (req, res) => {
   const signupInformation = req.body;
-  // console.log(signupInformation);
+  console.log(signupInformation);
   try {
     const user = new User({
       phoneNumber: "+84" + signupInformation.phoneNumber.slice(1),
