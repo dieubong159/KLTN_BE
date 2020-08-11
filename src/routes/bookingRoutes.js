@@ -427,7 +427,7 @@ router.post("/booking", async (req, res) => {
   const bookingDetail = payload.bookingDetail;
   const bookingInformation = payload.bookingInformation;
   const userId = payload.userId;
-  // console.log(req.body);
+  // console.log(bookingDetail);
 
   let bookingCode;
 
@@ -463,7 +463,8 @@ router.post("/booking", async (req, res) => {
     if (!departureId) {
       let departureDate = new Date(e.startDate);
       // console.log(departureDate.getDate());
-      // console.log(e._id);
+      console.log("Booking");
+      console.log(departureDate);
       const routeSchedule = RouteSchedule.findOne({
         route: e._id,
         dayOfWeek: departureDate.getDay(),
@@ -479,6 +480,32 @@ router.post("/booking", async (req, res) => {
 
       // console.log(departureId);
     }
+
+    var expired;
+    var now = new moment();
+    var startTime = moment(e.startDate, "MM/DD/YYYY hh:mm");
+    var paymentTime = [];
+    paymentTime.push(moment().hours(11).minutes(30));
+    paymentTime.push(moment().hours(14).minutes(0));
+    console.log(paymentTime);
+    for (let sep of paymentTime) {
+      // console.log()
+      if (sep.diff(now, "hours") >= 3) {
+        if (startTime.diff(sep, "hours") >= 4) {
+          expired = sep;
+          break;
+        }
+      }
+    }
+    if (!expired) {
+      for (let sep of paymentTime) {
+        if (startTime.diff(sep.add(1, "days"), "hours") >= 1) {
+          expired = sep;
+          break;
+        }
+      }
+    }
+    console.log(expired);
     try {
       for (let seat of e.seats) {
         const bookingInfo = {
@@ -494,6 +521,7 @@ router.post("/booking", async (req, res) => {
           endLocation: e.endLocation,
           startDate: e.startDate,
           endDate: e.endDate,
+          bookingExpiredTime: expired,
         };
         // console.log(bookingInfo);
         const booking = new Booking(bookingInfo);
@@ -506,6 +534,7 @@ router.post("/booking", async (req, res) => {
   }
   return res.status(200).send({
     bookingCode: bookingCode,
+    expiredDate: expired,
   });
 });
 
@@ -709,28 +738,25 @@ router.post("/booking/update", async (req, res) => {
     }
 
     const from = "TieuDan Booking";
-    let to;
+    // let to = userInformation.phoneNumber;
     if (userInformation.phoneNumber[0] === "+") {
-      to = "0" + userInformation.phoneNumber.slice(3);
+      to = userInformation.phoneNumber.slice(1);
     } else {
-      to = userInformation.phoneNumber;
+      to = "84" + userInformation.phoneNumber.slice(1);
     }
     console.log(to);
     let text = "";
     if (paymentType !== "momo") {
       text =
-        "Mã đặt chỗ của bạn là " +
+        "Ma dat cho cua ban la " +
         payload.bookingCode +
-        ". Xin vui lòng thanh toán trước 11:30 ngày " +
+        ". Xin vui long thanh toan truoc 11:30 ngày " +
         moment().add(1, "days").format("DD/MM/YYYY");
     } else {
       text = "Mã đặt chỗ của bạn là " + payload.bookingCode;
     }
-    try {
-      nexmo.message.sendSms(from, to, text);
-    } catch (error) {
-      console.log(error);
-    }
+    console.log(to);
+    nexmo.message.sendSms(from, to, text);
 
     var BookingItemHtml = "";
     let group = _.groupBy(bookings, "routeDeparture._id");

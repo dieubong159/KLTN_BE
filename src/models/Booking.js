@@ -1,11 +1,5 @@
 const mongoose = require("mongoose");
 
-const expiredTime = (h) => {
-  var today = new Date();
-  today.setHours(today.getHours() + h);
-  return today;
-};
-
 const bookingSchema = mongoose.Schema({
   routeDeparture: {
     type: mongoose.Schema.Types.ObjectId,
@@ -28,7 +22,7 @@ const bookingSchema = mongoose.Schema({
   },
   price: { type: Number },
   bookingTime: { type: Date, default: Date.now() },
-  bookingExpiredTime: { type: Date, default: expiredTime(18) },
+  bookingExpiredTime: { type: Date },
   status: { type: mongoose.Schema.Types.ObjectId, ref: "Const" },
   bookingCode: String,
   cancelDate: {
