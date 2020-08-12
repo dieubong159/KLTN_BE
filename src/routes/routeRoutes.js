@@ -647,7 +647,7 @@ router.get("/find-routes", async (req, resp) => {
         timeMonthToday == startTimeMonth &&
         timeYearToday == startTimeYear
       ) {
-        if (timeTodayMoment.isBefore(time)) {
+        if (timeTodayMoment.isAfter(time)) {
           return true;
         }
       }
@@ -732,7 +732,7 @@ router.get("/find-routes", async (req, resp) => {
                 startTime
               );
               if (timeSchedule) {
-                if (CheckSameDay(timeSchedule)) {
+                if (!CheckSameDay(timeSchedule)) {
                   startTime = timeSchedule;
                 } else {
                   validCheck = false;
