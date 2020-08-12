@@ -627,8 +627,8 @@ router.get("/find-routes", async (req, resp) => {
       return startTime;
     };
 
-    let CheckSameDay = (startTime) =>{
-      let timetoStartTime = new Date(startTime.format("MM/DD/YYYY"));     
+    let CheckSameDay = (time) =>{
+      let timetoStartTime = new Date(time.format("MM/DD/YYYY"));     
       let startTimeDate = timetoStartTime.getDate();
       let startTimeMonth = timetoStartTime.getMonth() + 1 ;
       let startTimeYear = timetoStartTime.getFullYear();
@@ -646,7 +646,7 @@ router.get("/find-routes", async (req, resp) => {
       ).add(2, "hours");
 
       if(timeDateToday == startTimeDate && timeMonthToday == startTimeMonth && timeYearToday == startTimeYear){
-        if (!timeTodayMoment.isBefore(startTime, "hours")) {
+        if (timeTodayMoment.isBefore(time)) {
           return true;
         }
       }
@@ -721,7 +721,7 @@ router.get("/find-routes", async (req, resp) => {
               startTime = findTimeToStation(startTime, routeDetail);
               let timeSchedule = findTimeToSchedule(temp[0][0].routeId,timeToStartRoute,startTime);
               if(timeSchedule){
-                if(!CheckSameDay(timeSchedule)){
+                if(CheckSameDay(timeSchedule)){
                   startTime = timeSchedule;
                 }
                 else{
