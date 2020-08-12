@@ -56,6 +56,13 @@ const userSchema = mongoose.Schema({
       default: undefined,
     },
   ],
+  locationLog: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Location",
+      default: undefined,
+    },
+  ],
 });
 
 userSchema.pre("save", function (next) {

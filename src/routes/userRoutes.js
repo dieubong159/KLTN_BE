@@ -4,6 +4,7 @@ const mongoose = require("mongoose");
 
 const User = mongoose.model("User");
 const Coupon = mongoose.model("Coupon");
+const Location = mongoose.model("Location");
 
 const router = express.Router();
 
@@ -133,5 +134,30 @@ router.get("/user/coupon/:userId", async (req, res) => {
 //     }
 //   }
 // });
+
+router.post("/user/log", async (req, res) => {
+  const payload = req.body;
+  const location = await Location.findById(payload.locationId);
+  const user = await User.findById(payload.userId);
+
+  if (location && user) {
+    if (user.locationLog) {
+      var locationLog = user.locationLog.filter(
+        (item, index) => user.locationLog.indexOf(item) === index
+      );
+      locationLog.push(location._id);
+      // console.log(locationLog.length);
+    }
+    User.findOneAndUpdate(
+      { _id: user._id },
+      { $set: { locationLog: locationLog } },
+      { upsert: false },
+      function (err) {
+        if (err) return res.status(500).send({ error: err });
+        // res.status(200).send(doc);
+      }
+    );
+  }
+});
 
 module.exports = router;

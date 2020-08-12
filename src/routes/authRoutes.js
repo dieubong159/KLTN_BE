@@ -74,7 +74,7 @@ router.get("/user/:userId", async (req, res) => {
   try {
     const user = await User.findOne({
       _id: userId,
-    }).populate("coupons");
+    }).populate("coupons locationLog");
     if (user) {
       res.send({ user });
     } else {
