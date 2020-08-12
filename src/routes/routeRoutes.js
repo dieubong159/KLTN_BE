@@ -507,15 +507,12 @@ router.get("/find-routes", async (req, resp) => {
       let route = allRoute.find((e) => e._id.toString() == routeId);
       let time = route.startTime.split(":");
 
-
       let temp = moment(
         startTime.format("YYYY-MM-DD HH:mm:ss"),
         "YYYY-MM-DD HH:mm:ss"
-      )
+      );
 
-      temp
-        .add(parseInt(time[0]), "hours")
-        .add(parseInt(time[1]), "minutes");
+      temp.add(parseInt(time[0]), "hours").add(parseInt(time[1]), "minutes");
       return temp;
     };
 
@@ -538,7 +535,7 @@ router.get("/find-routes", async (req, resp) => {
       let temp = moment(
         time.format("YYYY-MM-DD HH:mm:ss"),
         "YYYY-MM-DD HH:mm:ss"
-      )
+      );
 
       for (let detail of routeDetails) {
         temp.add(detail.timeArrivingToStation, "hours");
@@ -627,16 +624,16 @@ router.get("/find-routes", async (req, resp) => {
       return startTime;
     };
 
-    let CheckSameDay = (time) =>{
-      let timetoStartTime = new Date(time.format("MM/DD/YYYY"));     
+    let CheckSameDay = (time) => {
+      let timetoStartTime = new Date(time.format("MM/DD/YYYY"));
       let startTimeDate = timetoStartTime.getDate();
-      let startTimeMonth = timetoStartTime.getMonth() + 1 ;
+      let startTimeMonth = timetoStartTime.getMonth() + 1;
       let startTimeYear = timetoStartTime.getFullYear();
 
       //test
-      let timeToday = new Date();     
+      let timeToday = new Date();
       let timeDateToday = timeToday.getDate();
-      let timeMonthToday = timeToday.getMonth() + 1 ;
+      let timeMonthToday = timeToday.getMonth() + 1;
       let timeYearToday = timeToday.getFullYear();
       let timeTodayMoment = moment(
         `${timeToday.getFullYear()}-${
@@ -645,33 +642,43 @@ router.get("/find-routes", async (req, resp) => {
         "YYYY-MM-DD HH:mm:ss"
       ).add(2, "hours");
 
-      if(timeDateToday == startTimeDate && timeMonthToday == startTimeMonth && timeYearToday == startTimeYear){
+      if (
+        timeDateToday == startTimeDate &&
+        timeMonthToday == startTimeMonth &&
+        timeYearToday == startTimeYear
+      ) {
         if (timeTodayMoment.isBefore(time)) {
           return true;
         }
       }
       return false;
-    }
+    };
 
-    let findTimeToSchedule = (routeId,initTime,timeToRoute) =>{
+    let findTimeToSchedule = (routeId, initTime, timeToRoute) => {
       let gettimeIniteTime = moment(
         initTime.format("YYYY-MM-DD 00:00:00"),
         "YYYY-MM-DD HH:mm:ss"
-      )
+      );
       let gettimeToRoute = moment(
         timeToRoute.format("YYYY-MM-DD 00:00:00"),
         "YYYY-MM-DD HH:mm:ss"
-      )
+      );
       let subDay = moment
-      .duration(gettimeToRoute.valueOf() - gettimeIniteTime.valueOf(), "milliseconds")
-      .asDays()
+        .duration(
+          gettimeToRoute.valueOf() - gettimeIniteTime.valueOf(),
+          "milliseconds"
+        )
+        .asDays();
 
-      let time = initTime.subtract(subDay,"days");
-      let dateSelect = new Date(time.format("MM/DD/YYYY"))
-      let scheduleRoute = allSchedules.find((e)=> e.route == routeId.toString() && e.dayOfWeek == dateSelect.getDay());
+      let time = initTime.subtract(subDay, "days");
+      let dateSelect = new Date(time.format("MM/DD/YYYY"));
+      let scheduleRoute = allSchedules.find(
+        (e) =>
+          e.route == routeId.toString() && e.dayOfWeek == dateSelect.getDay()
+      );
 
-      if(scheduleRoute){
-        return timeToRoute.subtract(subDay,"days");
+      if (scheduleRoute) {
+        return timeToRoute.subtract(subDay, "days");
       }
       return null;
     };
@@ -693,13 +700,13 @@ router.get("/find-routes", async (req, resp) => {
 
     let validRoute = [];
     for (let routeItem of allDetailRoutes) {
-      let validCheck = true; 
+      let validCheck = true;
       let temp = groupNext(routeItem);
       // check số chuyến không được lớn hơn 3
       if (temp.length > 3) {
         continue;
       }
-      let startTime = new Date(routeData.departureDate);     
+      let startTime = new Date(routeData.departureDate);
       startTime = moment(
         `${startTime.getFullYear()}-${
           startTime.getMonth() + 1
@@ -709,7 +716,7 @@ router.get("/find-routes", async (req, resp) => {
 
       let startTimes = [];
       for (let i = 0; i < temp.length; i++) {
-        if(!validCheck){
+        if (!validCheck) {
           break;
         }
         for (let j = 0; j < temp[i].length; j++) {
@@ -719,18 +726,20 @@ router.get("/find-routes", async (req, resp) => {
               let timeToStartRoute = startTime;
               let routeDetail = getRouteDetail(temp[0][0]);
               startTime = findTimeToStation(startTime, routeDetail);
-              let timeSchedule = findTimeToSchedule(temp[0][0].routeId,timeToStartRoute,startTime);
-              if(timeSchedule){
-                if(CheckSameDay(timeSchedule)){
+              let timeSchedule = findTimeToSchedule(
+                temp[0][0].routeId,
+                timeToStartRoute,
+                startTime
+              );
+              if (timeSchedule) {
+                if (CheckSameDay(timeSchedule)) {
                   startTime = timeSchedule;
-                }
-                else{
-                  validCheck =false;
+                } else {
+                  validCheck = false;
                   break;
                 }
-              }
-              else{
-                validCheck =false;
+              } else {
+                validCheck = false;
                 break;
               }
             } else {
@@ -765,7 +774,7 @@ router.get("/find-routes", async (req, resp) => {
         }
       }
 
-      if(validCheck){
+      if (validCheck) {
         validRoute.push({
           routeItem: routeItem,
           startTimes: startTimes,
@@ -991,7 +1000,7 @@ router.get("/find-routes", async (req, resp) => {
       // Get route details
       let routeDetails = allRouteDetails.filter(
         (e) => e.route.toString() == route._id.toString()
-      );   
+      );
 
       let startAddress = getLocation(routeDetail.startStation.stationStopId);
       let endAddress = getLocation(routeDetail.endStation.stationStopId);
