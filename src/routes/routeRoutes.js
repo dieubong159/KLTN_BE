@@ -2,6 +2,7 @@ const express = require("express");
 const mongoose = require("mongoose");
 const { route } = require("./vehicleRoutes");
 const moment = require("moment");
+const schedule = require("node-schedule");
 
 const Route = mongoose.model("Route");
 const RouteDetail = mongoose.model("RouteDetail");
@@ -76,10 +77,10 @@ let getAgentForAdmin = async (adminId) => {
   return [...new Set(agents)];
 };
 
-let setDepartureComplete = async (allRouteDetails, allbookings) => {
+let setDepartureComplete = async () => {
   let departures = await RouteDeparture.find().populate("route");
-  //let allRouteDetails = await RouteDetail.find().populate("station");
-  //let allbookings = Booking.find({r})
+  let allRouteDetails = await RouteDetail.find().populate("station");
+  let allbookings = await Booking.find();
   var statusRouteComplete = await Const.findOne({
     type: "trang_thai_hanh_trinh",
     value: "da_di",
@@ -150,11 +151,12 @@ let setDepartureComplete = async (allRouteDetails, allbookings) => {
   }
 };
 
-let setBookingTimeout = async (allbookings) => {
+let setBookingTimeout = async () => {
   let statusSeatBooking = await Const.findOne({
     type: "trang_thai_ghe",
     value: "giu_cho",
   });
+  let allbookings = await Booking.find();
   // let statusBookingRemove = await Const.findOne({
   //   type: "trang_thai_dat_cho",
   //   value: "da_huy",
@@ -188,6 +190,21 @@ let setBookingTimeout = async (allbookings) => {
     }
   }
 };
+
+schedule.scheduleJob("11 31 * * *", function () {
+  // set booking hết hạn
+  setBookingTimeout(allBookings);
+});
+
+schedule.scheduleJob("14 01 * * *", function () {
+  // set booking hết hạn
+  setBookingTimeout(allBookings);
+});
+
+schedule.scheduleJob("0 1 * * *", function () {
+  // chạy tự động set chuyến đã đi
+  setDepartureComplete(allRouteDetails, allBookings);
+});
 
 router.get("/route-by-agent/:admin_id", async (req, res) => {
   const routes = await Route.find()
@@ -253,11 +270,6 @@ router.get("/find-routes", async (req, resp) => {
     type: "trang_thai_dat_cho",
     value: "da_huy",
   });
-
-  // chạy tự động set chuyến đã đi
-  setDepartureComplete(allRouteDetails, allBookings);
-  // set booking hết hạn
-  setBookingTimeout(allBookings);
 
   // try{
   let routeDetailByStartLocs = allRouteDetails.filter(
