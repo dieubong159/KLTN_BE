@@ -1074,7 +1074,7 @@ router.get("/find-routes", async (req, resp) => {
           dataFinal.push({
             totalTime: diffTime,
             totalPrice: totalPrice,
-            totalRate : totalRate / mapRoutes.length,
+            reviewRate : totalRate / mapRoutes.length,
             routes: mapRoutes,
           });
         }
@@ -1339,6 +1339,7 @@ router.get("/find-routes", async (req, resp) => {
           .duration(endHour.valueOf() - startHour.valueOf(), "milliseconds")
           .asDays(),
         totalPrice: (disEndLength - disStartLength) * pricePerKm,
+        reviewRate : agent.reviewRate == null ? 3 : agent.reviewRate,
         routes: [
           {
             _id: prop,
