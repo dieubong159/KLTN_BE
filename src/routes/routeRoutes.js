@@ -1035,6 +1035,7 @@ router.get("/find-routes", async (req, resp) => {
         price: timeAndPrice.price,
         departureId: deptAndSeats.depId,
         emptySeats: deptAndSeats.emptySeats,
+        reviewRate : timeAndPrice.agent.reviewRate == null ? 3 : timeAndPrice.agent.reviewRate
       };
     };
 
@@ -1058,10 +1059,13 @@ router.get("/find-routes", async (req, resp) => {
 
         let totalPrice = mapRoutes.reduce((a, b) => a + b["price"], 0);
 
+        let totalRate = mapRoutes.reduce((a, b) => a + b["reviewRate"], 0);
+
         if (diffTime <= 3) {
           dataFinal.push({
             totalTime: diffTime,
             totalPrice: totalPrice,
+            totalRate : totalRate / mapRoutes.length,
             routes: mapRoutes,
           });
         }
