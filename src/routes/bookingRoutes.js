@@ -59,7 +59,16 @@ const makeCode = (length) => {
 };
 
 const confirmPayment = async (bookingCode) => {
-  var bookings = await Booking.find({ bookingCode: bookingCode });
+  var bookings = await Booking.find({ bookingCode: bookingCode }).populate({
+    path: "routeDeparture",
+    populate: {
+      path: "route",
+      populate: {
+        path: "vehicle",
+        populate: "agent",
+      },
+    },
+  });
   console.log("Update Payment");
   // console.log(bookings);
   if (bookings.length === 0) {
@@ -103,9 +112,9 @@ const confirmPayment = async (bookingCode) => {
       to = bookings[0].bookingInformation.phonenumber;
     }
     const text =
-      "Bạn đã thanh toán thành công! Mã đặt chỗ của bạn là " +
+      "Ban da thanh toan thanh cong! Ma dat cho cua ban la " +
       bookingCode +
-      ". Xin vui lòng đến trạm đón trước 30 phút để khởi hành!";
+      ". Xin vui long den tram truoc 30 phut khoi hanh!";
 
     nexmo.message.sendSms(from, to, text);
 
@@ -122,6 +131,7 @@ const confirmPayment = async (bookingCode) => {
       for (let item of booking) {
         seats.push(item.seatNumber);
       }
+      console.log(booking[0]);
       BookingItemHtml +=
         '<table style="border-collapse: collapse; background-color: #fff;width: 100%;">                    <tr>                        <td style="text-align: center; vertical-align: top;border: 1px solid #a7a6a6; padding: 12px;" align="center">                            <p style="margin: 0; color: #5c5c5c;" >GHẾ</p>                            <p style="margin: 0;">' +
         seats.toString() +
@@ -156,7 +166,7 @@ const confirmPayment = async (bookingCode) => {
 
     const mailOptions = {
       from: "16110291@student.hcmute.edu.vn", // sender address
-      to: userInformation.email,
+      to: booking[0].bookingInformation.email,
       subject: "Thông báo thanh toán thành công", // Subject line
       html:
         '<!DOCTYPE html>        <html lang="en">       <head>            <meta charset="UTF-8">            <meta name="viewport" content="width=device-width, initial-scale=1.0">            <title>Email template</title>        </head>        <body>            <div style="font-family: Arial, Helvetica, sans-serif;background-color: #f1f1f1;padding: 16px;">                <table style="border-collapse: collapse; background-color: #fff;width: 100%; display: block;margin-bottom: 32px;">                    <tr style="font-size: 28px;">                        <td style="vertical-align: top;border: 1px solid #a7a6a6; padding: 12px;" colspan="2">                            <span style="color: #5c5c5c;" >THÔNG TIN QUAN TRỌNG</span>                        </td>                        <td style="vertical-align: top;border: 1px solid #a7a6a6; padding: 12px; color: #5c5c5c;" align="right">                            <span>MÃ THANH TOÁN: <span style="color:red;">' +
@@ -168,13 +178,13 @@ const confirmPayment = async (bookingCode) => {
         '</p>                            <p style="margin: 0;"><small  style="color: #5c5c5c;" ><i>Thanh toán xác số tiền phải trả trong mọi trường hợp.</i></small></p>                        </td>                    </tr>                </table>     ' +
         BookingItemHtml +
         '           <table style="border-collapse: collapse; background-color: #fff;width: 100%; margin-top: 32px;">                    <tr>                        <td style="text-align: center; vertical-align: top;border: 1px solid #a7a6a6; padding: 12px;">                            <span style="color: #5c5c5c; font-size: 28px;">HÀNH KHÁCH</span>                        </td>                    </tr>                    <td style="text-align: center; vertical-align: top;border: 1px solid #a7a6a6; padding: 12px;" align="center">                        <span style="border: 1px solid #a7a6a6;border-radius: 16px;padding:4px 8px;margin-bottom: 4px;display: inline-block; font-style: italic; color: #5c5c5c;" >' +
-        userInformation.name +
+        booking[0].bookingInformation.name +
         '</span>                        <p style="margin: 0; color: #5c5c5c;" ><small>' +
-        userInformation.phoneNumber +
+        booking[0].bookingInformation.phoneNumber +
         '</small></p>                        <p style="margin: 0; color: #5c5c5c;" ><small>' +
-        userInformation.email +
+        booking[0].bookingInformation.email +
         '</small></p> <p style="margin: 0; color: #5c5c5c;" ><small>' +
-        userInformation.identityId +
+        booking[0].bookingInformation.identityId +
         "</small></p>                    </td>                </table>            </div>        </body>        </html>",
     };
 
@@ -753,7 +763,7 @@ router.post("/booking/update", async (req, res) => {
         ". Xin vui long thanh toan truoc 11:30 ngày " +
         moment().add(1, "days").format("DD/MM/YYYY");
     } else {
-      text = "Mã đặt chỗ của bạn là " + payload.bookingCode;
+      text = "Ma dat cho cua ban la " + payload.bookingCode;
     }
     console.log(to);
     nexmo.message.sendSms(from, to, text);
