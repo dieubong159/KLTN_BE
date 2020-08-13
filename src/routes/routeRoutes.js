@@ -84,13 +84,21 @@ let setDepartureComplete = async (allRouteDetails, allbookings) => {
     type: "trang_thai_hanh_trinh",
     value: "da_di",
   });
+  var statusRouteIncomplete = await Const.findOne({
+    type: "trang_thai_hanh_trinh",
+    value: "chua_di",
+  });
   var statusBookingComplete = await Const.findOne({
     type: "trang_thai_dat_cho",
     value: "da_di",
   });
+  var statusBookingPendding = await Const.findOne({
+    type: "trang_thai_dat_cho",
+    value: "cho",
+  });
 
   for (let departure of departures) {
-    if (departure.status.toString() != statusRouteComplete._id.toString()) {
+    if (departure.status.toString() == statusRouteIncomplete._id.toString()) {
       let date = departure.departureDate.getDate(),
         month = departure.departureDate.getMonth() + 1,
         year = departure.departureDate.getFullYear();
@@ -119,7 +127,7 @@ let setDepartureComplete = async (allRouteDetails, allbookings) => {
         yearToday = today.getFullYear();
 
       let todayMoment = moment(
-        `${yearToday}-${monthToday}-${dateToday} 00:00:00`,
+        `${yearToday}-${monthToday}-${dateToday} ${today.getHours()}:${today.getMinutes()}:00`,
         "YYYY-MM-DD HH:mm:ss"
       );
 
@@ -131,9 +139,11 @@ let setDepartureComplete = async (allRouteDetails, allbookings) => {
           (e) => e.routeDeparture.toString() == departure._id.toString()
         );
         for (let booking of bookings) {
-          booking.status = statusBookingComplete;
-          booking.reviewed = false;
-          await booking.save();
+          if(booking.status.toString() == statusBookingPendding._id.toString()){
+            booking.status = statusBookingComplete;
+            booking.reviewed = false;
+            await booking.save();
+          }
         }
       }
     }
