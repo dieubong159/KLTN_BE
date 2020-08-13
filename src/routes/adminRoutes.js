@@ -307,9 +307,9 @@ router.post("/statistical", async (req, res) => {
 
   let getStatistical = async (routeDeparture,allBookings)=>{
     let bookings = allBookings.filter(e=>e.routeDeparture.toString() == routeDeparture._id.toString());
-    let bookingComplete = bookings.filter(e=>e.status.toString() == statusBookingComplete);
+    let bookingComplete = bookings.filter(e=>e.status.toString() == statusBookingComplete._id.toString());
     let ticketComplete = bookingComplete.length;
-    let ticketCancel = bookings.filter(e=>e.status.toString() != statusBookingComplete).length;
+    let ticketCancel = bookings.filter(e=>e.status.toString() != statusBookingComplete._id.toString()).length;
 
     let revenue = 0;
     for(let booking of bookingComplete){
