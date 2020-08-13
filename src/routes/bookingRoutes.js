@@ -357,7 +357,7 @@ router.get("/booking", async (req, res) => {
 
 router.get("/booking/:userId", async (req, res) => {
   const userId = req.params.userId;
-  console.log(userId);
+  // console.log(userId);
   try {
     const groupBookingCodes = await Booking.aggregate([
       {
@@ -415,11 +415,11 @@ router.get("/booking/:userId", async (req, res) => {
               },
             },
           });
-          bookings.sort(function (a, b) {
-            const TimeA = moment(a.startDate, "MM/DD/YYYY hh:mm");
-            const TimeB = moment(b.startDate, "MM/DD/YYYY hh:mm");
-            return TimeA.get() - TimeB.get();
-          });
+          // bookings.sort(function (a, b) {
+          //   const TimeA = moment(a.startDate, "MM/DD/YYYY hh:mm");
+          //   const TimeB = moment(b.startDate, "MM/DD/YYYY hh:mm");
+          //   return TimeA.get() - TimeB.get();
+          // });
           // console.log(bookings);
           results.push(bookings);
         }
